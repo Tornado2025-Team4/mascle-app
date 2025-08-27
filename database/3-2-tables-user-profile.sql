@@ -1,0 +1,108 @@
+CREATE TABLE users_line_profile (
+    rel_id                          BIGSERIAL       PRIMARY KEY,
+    created_at                      TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
+    updated_at                      TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
+
+    user_rel_id                     BIGINT          NOT NULL UNIQUE REFERENCES users_master(rel_id) ON DELETE CASCADE,
+    display_name                    VARCHAR(100)    NOT NULL,
+    description                     TEXT,
+    icon_rel_id                     UUID            REFERENCES storage.objects(id),
+    birth_date                      DATE,
+    gender                          gender,
+    training_since                  DATE,
+    skill_level                     SMALLINT,
+    registered_at                   TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
+
+    CONSTRAINT users_line_profile_birth_date_past CHECK (birth_date < CURRENT_DATE),
+    CONSTRAINT users_line_profile_training_since_valid CHECK (training_since <= CURRENT_DATE),
+    CONSTRAINT users_line_profile_display_name_not_empty CHECK (LENGTH(TRIM(display_name)) > 0)
+);
+
+CREATE UNIQUE INDEX idx__users_line_profile__user_rel_id ON users_line_profile (user_rel_id);
+CREATE INDEX idx__users_line_profile__display_name ON users_line_profile (display_name);
+CREATE INDEX idx__users_line_profile__gender ON users_line_profile (gender);
+CREATE INDEX idx__users_line_profile__birth_date ON users_line_profile (birth_date);
+CREATE INDEX idx__users_line_profile__training_since ON users_line_profile (training_since);
+CREATE INDEX idx__users_line_profile__skill_level ON users_line_profile (skill_level);
+CREATE INDEX idx__users_line_profile__icon_rel_id ON users_line_profile (icon_rel_id);
+
+
+CREATE TABLE users_lines_tags (
+    rel_id                          BIGSERIAL       PRIMARY KEY,
+    created_at                      TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
+    updated_at                      TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
+
+    user_rel_id                     BIGINT          NOT NULL REFERENCES users_master(rel_id) ON DELETE CASCADE,
+    tag_rel_id                      BIGINT          NOT NULL REFERENCES tags_master(rel_id)
+);
+
+CREATE UNIQUE INDEX idx__users_lines_tags__user_tag ON users_lines_tags (user_rel_id, tag_rel_id);
+CREATE INDEX idx__users_lines_tags__tag_rel_id ON users_lines_tags (tag_rel_id);
+
+
+CREATE TABLE users_lines_intents (
+    rel_id                          BIGSERIAL       PRIMARY KEY,
+    created_at                      TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
+    updated_at                      TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
+
+    user_rel_id                     BIGINT          NOT NULL REFERENCES users_master(rel_id) ON DELETE CASCADE,
+    intent_rel_id                   BIGINT          NOT NULL REFERENCES intents_master(rel_id)
+);
+
+CREATE UNIQUE INDEX idx__users_lines_intents__user_intent ON users_lines_intents (user_rel_id, intent_rel_id);
+CREATE INDEX idx__users_lines_intents__intent_rel_id ON users_lines_intents (intent_rel_id);
+
+
+CREATE TABLE users_lines_intent_bodyparts (
+    rel_id                          BIGSERIAL       PRIMARY KEY,
+    created_at                      TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
+    updated_at                      TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
+
+    user_rel_id                     BIGINT          NOT NULL REFERENCES users_master(rel_id) ON DELETE CASCADE,
+    bodypart_rel_id                 BIGINT          NOT NULL REFERENCES bodyparts_master(rel_id)
+);
+
+CREATE UNIQUE INDEX idx__users_lines_intent_bodyparts__user_bodypart ON users_lines_intent_bodyparts (user_rel_id, bodypart_rel_id);
+CREATE INDEX idx__users_lines_intent_bodyparts__bodypart_rel_id ON users_lines_intent_bodyparts (bodypart_rel_id);
+
+
+CREATE TABLE users_lines_belonging_gyms (
+    rel_id                          BIGSERIAL       PRIMARY KEY,
+    created_at                      TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
+    updated_at                      TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
+
+    user_rel_id                     BIGINT          NOT NULL REFERENCES users_master(rel_id) ON DELETE CASCADE,
+    gym_rel_id                      BIGINT          NOT NULL REFERENCES gyms_master(rel_id),
+    joined_at                       TIMESTAMPTZ     NOT NULL DEFAULT NOW()
+);
+
+CREATE UNIQUE INDEX idx__users_lines_belonging_gyms__user_gym ON users_lines_belonging_gyms (user_rel_id, gym_rel_id);
+CREATE INDEX idx__users_lines_belonging_gyms__gym_rel_id ON users_lines_belonging_gyms (gym_rel_id);
+
+
+CREATE TABLE status_master (
+    rel_id                          BIGSERIAL       PRIMARY KEY,
+    created_at                      TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
+    updated_at                      TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
+
+    pub_id                          CHAR(21)        NOT NULL UNIQUE,
+    user_rel_id                     BIGINT          NOT NULL REFERENCES users_master(rel_id) ON DELETE CASCADE,
+    started_at                      TIMESTAMPTZ     NOT NULL,
+    finished_at                     TIMESTAMPTZ,
+    is_auto_detected                BOOLEAN         NOT NULL DEFAULT FALSE,
+    gym_rel_id                      BIGINT          REFERENCES gyms_master(rel_id),
+
+    CONSTRAINT status_time_order CHECK (finished_at IS NULL OR finished_at > started_at),
+    CONSTRAINT status_started_at_past CHECK (started_at <= NOW()),
+    CONSTRAINT status_reasonable_duration CHECK (
+        finished_at IS NULL OR
+        finished_at - started_at <= INTERVAL '12 hours'
+    )
+);
+
+CREATE UNIQUE INDEX idx__status__pub_id ON status_master (pub_id);
+CREATE INDEX idx__status__user_id ON status_master (user_rel_id);
+CREATE INDEX idx__status__started_at ON status_master (started_at);
+CREATE INDEX idx__status__finished_at ON status_master (finished_at);
+CREATE INDEX idx__status__auto_detected ON status_master (is_auto_detected);
+CREATE INDEX idx__status__gym_id ON status_master (gym_rel_id);
