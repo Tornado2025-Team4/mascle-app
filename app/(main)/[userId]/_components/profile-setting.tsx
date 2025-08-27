@@ -1,8 +1,9 @@
+'use client'
 import React from 'react'
 import { useParams } from 'next/navigation'
 
 const ProfileSetting = () => {
-  const userId = useParams();
+  const userId = useParams().userId;
   return (
     <div>
       {/* 自分のプロフィールのみ表示 */}
