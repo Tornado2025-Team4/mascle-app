@@ -6,6 +6,7 @@ const CreatePost = () => {
 
   //実際はAPIサーバーにPost
   const createPost = async (formData: FormData) => {
+    'use server'
     const title = formData.get('title');
     const content = formData.get('content');
     console.log(title, content);
