@@ -6,7 +6,7 @@ const posts = [
   {
     id: 1,
     user: 'John Doe',
-    image: 'https://example.com/image.jpg',
+    image: '/images/image.jpg',
     likes: 100,
     caption: 'This is a caption',
     commentsCount: 10
