@@ -1,11 +1,11 @@
 import React from 'react'
-import SignupForm from './_components/signup-form'
+import SigninForm from './_components/signin-form'
 
-const Signup = async () => {
+const Signin = async () => {
   return (
     <main className="mx-auto px-4 py-10 flex flex-col">
       <div className="h-[80vh]">
-        <SignupForm />
+        <SigninForm />
       </div> 
       <div className="h-[20vh] text-center text-2xl">
         PROTEN
@@ -14,4 +14,4 @@ const Signup = async () => {
   )
 }
 
-export default Signup
+export default Signin

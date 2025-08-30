@@ -6,6 +6,7 @@ import { createClient as createBrowserClient } from '@/utils/supabase/client'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
+import Link from 'next/link'
 
 type FormState = {
 	email: string
@@ -20,8 +21,8 @@ const SignupForm: React.FC = () => {
 	const [errorMessage, setErrorMessage] = React.useState<string | null>(null)
 	const [infoMessage, setInfoMessage] = React.useState<string | null>(null)
 
-	async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-		event.preventDefault()
+	async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+		e.preventDefault()
 		setErrorMessage(null)
 		setInfoMessage(null)
 		setIsSubmitting(true)
@@ -44,33 +45,33 @@ const SignupForm: React.FC = () => {
 			}
 		} catch (error) {
 			console.error('Failed to sign up', error)
-			setErrorMessage('サインアップに失敗しました。時間をおいて再度お試しください。')
+			setErrorMessage('Failed to sign up. Please try again later.')
 		} finally {
 			setIsSubmitting(false)
 		}
 	}
 
 	return (
-		<form onSubmit={handleSubmit} className="space-y-4">
-			<div className="space-y-2">
-				<Label htmlFor="email">メールアドレス</Label>
+		<form onSubmit={handleSubmit} className="space-y-6 border-1 border-gray-300 p-5 rounded-md mt-[20vh] mb-[20vh]">
+			<div className="space-y-3">
+				<Label htmlFor="email">Email</Label>
 				<Input
 					id="email"
 					type="email"
 					autoComplete="email"
-					placeholder="you@example.com"
+					placeholder="Enter your email"
 					required
 					value={form.email}
 					onChange={(e) => setForm((prev) => ({ ...prev, email: e.target.value }))}
 				/>
 			</div>
-			<div className="space-y-2">
-				<Label htmlFor="password">パスワード</Label>
+			<div className="space-y-3">
+				<Label htmlFor="password">Password</Label>
 				<Input
 					id="password"
 					type="password"
 					autoComplete="new-password"
-					placeholder="••••••••"
+					placeholder="Enter your password"
 					required
 					value={form.password}
 					onChange={(e) => setForm((prev) => ({ ...prev, password: e.target.value }))}
@@ -89,9 +90,17 @@ const SignupForm: React.FC = () => {
 				</p>
 			) : null}
 
-			<Button type="submit" disabled={isSubmitting} className="w-full">
-				{isSubmitting ? '作成中…' : 'アカウント作成'}
+			<Button type="submit" disabled={isSubmitting} className="w-full cursor-pointer">
+				{isSubmitting ? 'Creating account…' : 'Create account'}
 			</Button>
+			<div className="flex justify-center">
+				<p className="text-sm text-gray-900">
+					Already have an account?
+				</p>
+				<Link href="/login" className="ml-4 text-black text-sm font-bold underline">
+					Sign in
+				</Link>
+			</div>
 		</form>
 	)
 }
