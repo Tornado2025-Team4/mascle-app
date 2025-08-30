@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 
@@ -9,7 +9,7 @@ interface User {
   icon: string
 }
 
-const UserSearch = () => {
+const UserSearchContent = () => {
   const searchParams = useSearchParams()
   const search = searchParams.get('search')
   const [data, setData] = useState<User[]>([])
@@ -38,6 +38,14 @@ const UserSearch = () => {
         ))}
       </div>
     </div>
+  )
+}
+
+const UserSearch = () => {
+  return (
+    <Suspense fallback={<div>検索中...</div>}>
+      <UserSearchContent />
+    </Suspense>
   )
 }
 
