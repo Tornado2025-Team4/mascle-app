@@ -152,12 +152,12 @@ SELECT
     u.pub_id as user_pub_id,
     u.anon_pub_id as user_anon_pub_id,
 
-    check_relationship_access(u.rel_id, po.states) as privacy_allowed,
+    check_relationship_access(u.rel_id, po.status) as privacy_allowed,
     check_relationship_access(u.rel_id, po.status_histories) as privacy_allowed_histories,
     check_relationship_access(u.rel_id, po.status_location) as privacy_allowed_location,
 
     CASE
-        WHEN check_relationship_access(u.rel_id, po.states) THEN
+        WHEN check_relationship_access(u.rel_id, po.status) THEN
             CASE
                 WHEN check_relationship_access(u.rel_id, po.status_histories) THEN s.started_at
                 WHEN s.rel_id = (
@@ -171,7 +171,7 @@ SELECT
     END as started_at,
 
     CASE
-        WHEN check_relationship_access(u.rel_id, po.states) THEN
+        WHEN check_relationship_access(u.rel_id, po.status) THEN
             CASE
                 WHEN check_relationship_access(u.rel_id, po.status_histories) THEN s.finished_at
                 WHEN s.rel_id = (
@@ -185,7 +185,7 @@ SELECT
     END as finished_at,
 
     CASE
-        WHEN check_relationship_access(u.rel_id, po.states) THEN
+        WHEN check_relationship_access(u.rel_id, po.status) THEN
             CASE
                 WHEN check_relationship_access(u.rel_id, po.status_histories) THEN s.is_auto_detected
                 WHEN s.rel_id = (
@@ -199,7 +199,7 @@ SELECT
     END as is_auto_detected,
 
     CASE
-        WHEN check_relationship_access(u.rel_id, po.states)
+        WHEN check_relationship_access(u.rel_id, po.status)
             AND check_relationship_access(u.rel_id, po.status_location) THEN
             CASE
                 WHEN check_relationship_access(u.rel_id, po.status_histories) THEN s.gym_rel_id

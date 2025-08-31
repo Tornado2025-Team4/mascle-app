@@ -25,7 +25,7 @@ CREATE INDEX idx__notices_master__user_rel_id ON notices_master (user_rel_id);
 CREATE INDEX idx__notices_master__notified_at ON notices_master (notified_at);
 CREATE INDEX idx__notices_master__kind ON notices_master (kind);
 CREATE INDEX idx__notices_master__title ON notices_master (title);
-CREATE INDEX idx__notices_master__body_fts ON notices_master USING GIN (to_tsvector('japanese', body));
+CREATE INDEX idx__notices_master__body_fts ON notices_master USING pgroonga (body);
 
 
 CREATE TABLE notices_lines_mentions (

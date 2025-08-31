@@ -68,8 +68,8 @@ CREATE POLICY "objstore_update_policy" ON storage.objects
         (
             bucket_id = 'dm_groups_icons'
             AND EXISTS (
-                SELECT 1 FROM user_dm_groups udg
-                JOIN user_dm_group_members udgm ON udgm.group_rel_id = udg.rel_id
+                SELECT 1 FROM dm_groups_master udg
+                JOIN dm_groups_lines_members udgm ON udgm.dm_group_rel_id = udg.rel_id
                 WHERE udg.icon_rel_id = storage.objects.id
                     AND udgm.user_rel_id = get_current_user_rel_id()
                     AND udgm.is_admin = TRUE
@@ -139,8 +139,8 @@ CREATE POLICY "objstore_delete_policy" ON storage.objects
         (
             bucket_id = 'dm_groups_icons'
             AND EXISTS (
-                SELECT 1 FROM user_dm_groups udg
-                JOIN user_dm_group_members udgm ON udgm.group_rel_id = udg.rel_id
+                SELECT 1 FROM dm_groups_master udg
+                JOIN dm_groups_lines_members udgm ON udgm.dm_group_rel_id = udg.rel_id
                 WHERE udg.icon_rel_id = storage.objects.id
                     AND udgm.user_rel_id = get_current_user_rel_id()
                     AND udgm.is_admin = TRUE

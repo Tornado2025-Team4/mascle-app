@@ -36,7 +36,7 @@ CREATE TABLE users_line_privacy (
     intents                         relship         DEFAULT 'anyone',
     intent_bodyparts                relship         DEFAULT 'anyone',
     belonging_gyms                  relship         DEFAULT 'no-one',
-    states                          relship         DEFAULT 'no-one',
+    status                          relship         DEFAULT 'no-one',
     status_location                 relship         DEFAULT 'no-one',
     status_histories                relship         DEFAULT 'no-one',
     followings                      relship         DEFAULT 'anyone',

@@ -18,7 +18,7 @@ CREATE INDEX idx__posts_master__posted_user_rel_id ON posts_master (posted_user_
 CREATE INDEX idx__posts_master__posted_at ON posts_master (posted_at);
 CREATE INDEX idx__posts_master__trained_gym_rel_id ON posts_master (trained_gym_rel_id);
 
-CREATE INDEX idx__posts_master__body_fts ON posts_master USING GIN (to_tsvector('japanese', body));
+CREATE INDEX idx__posts_master__body_fts ON posts_master USING pgroonga (body);
 
 
 CREATE TABLE posts_lines_body_mentions (

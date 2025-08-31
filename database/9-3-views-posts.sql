@@ -49,7 +49,7 @@ SELECT
 
     CASE
         WHEN check_relationship_access(u.rel_id, po.posts) THEN
-            CASE WHEN user_comment.rel_id IS NOT NULL THEN true ELSE false END
+            CASE WHEN comments_master.rel_id IS NOT NULL THEN true ELSE false END
         ELSE NULL
     END as is_commented_by_current_user
 
@@ -68,7 +68,13 @@ LEFT JOIN (
     GROUP BY post_rel_id
 ) comment_count ON p.rel_id = comment_count.post_rel_id
 LEFT JOIN posts_lines_likes user_like ON p.rel_id = user_like.post_rel_id
-    AND user_like.user_rel_id = get_current_user_rel_id();
+    AND user_like.user_rel_id = get_current_user_rel_id()
+LEFT JOIN (
+    SELECT post_rel_id, MIN(rel_id) as rel_id
+    FROM comments_master
+    WHERE user_rel_id = get_current_user_rel_id()
+    GROUP BY post_rel_id
+) comments_master ON p.rel_id = comments_master.post_rel_id;
 
 
 CREATE VIEW view_posts_lines_tags AS

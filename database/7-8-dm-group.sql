@@ -32,7 +32,6 @@ CREATE POLICY "dm_groups_master_update_policy" ON dm_groups_master
         EXISTS (
             SELECT 1 FROM dm_groups_lines_members
             WHERE dm_groups_lines_members.user_rel_id = get_current_user_rel_id()
-                AND dm_groups_lines_members.pub_id = auth.uid()
                 AND dm_groups_lines_members.is_admin = TRUE
         )
     )
@@ -48,7 +47,6 @@ CREATE POLICY "dm_groups_master_delete_policy" ON dm_groups_master
         EXISTS (
             SELECT 1 FROM dm_groups_lines_members
             WHERE dm_groups_lines_members.user_rel_id = get_current_user_rel_id()
-                AND dm_groups_lines_members.pub_id = auth.uid()
                 AND dm_groups_lines_members.is_admin = TRUE
         )
     );
@@ -446,7 +444,7 @@ CREATE POLICY "dm_groups_messages_lines_mentions_select_policy" ON dm_groups_mes
     USING (
         EXISTS (
             SELECT 1 FROM dm_groups_messages_master
-            WHERE dm_groups_messages_master.rel_id = dm_group_message_rel_id
+            WHERE dm_groups_messages_master.rel_id = message_rel_id
                 AND EXISTS (
                     SELECT 1 FROM dm_groups_lines_members
                     WHERE dm_groups_lines_members.dm_group_rel_id = dm_groups_messages_master.dm_group_rel_id
@@ -460,7 +458,7 @@ CREATE POLICY "dm_groups_messages_lines_mentions_insert_policy" ON dm_groups_mes
     WITH CHECK (
         EXISTS (
             SELECT 1 FROM dm_groups_messages_master
-            WHERE dm_groups_messages_master.rel_id = dm_group_message_rel_id
+            WHERE dm_groups_messages_master.rel_id = message_rel_id
                 AND EXISTS (
                     SELECT 1 FROM dm_groups_lines_members
                     WHERE dm_groups_lines_members.dm_group_rel_id = dm_groups_messages_master.dm_group_rel_id
@@ -474,7 +472,7 @@ CREATE POLICY "dm_groups_messages_lines_mentions_update_policy" ON dm_groups_mes
     USING (
         EXISTS (
             SELECT 1 FROM dm_groups_messages_master
-            WHERE dm_groups_messages_master.rel_id = dm_group_message_rel_id
+            WHERE dm_groups_messages_master.rel_id = message_rel_id
                 AND EXISTS (
                     SELECT 1 FROM dm_groups_lines_members
                     WHERE dm_groups_lines_members.dm_group_rel_id = dm_groups_messages_master.dm_group_rel_id
@@ -485,7 +483,7 @@ CREATE POLICY "dm_groups_messages_lines_mentions_update_policy" ON dm_groups_mes
     WITH CHECK (
         EXISTS (
             SELECT 1 FROM dm_groups_messages_master
-            WHERE dm_groups_messages_master.rel_id = dm_group_message_rel_id
+            WHERE dm_groups_messages_master.rel_id = message_rel_id
                 AND EXISTS (
                     SELECT 1 FROM dm_groups_lines_members
                     WHERE dm_groups_lines_members.dm_group_rel_id = dm_groups_messages_master.dm_group_rel_id
@@ -499,7 +497,7 @@ CREATE POLICY "dm_groups_messages_lines_mentions_delete_policy" ON dm_groups_mes
     USING (
         EXISTS (
             SELECT 1 FROM dm_groups_messages_master
-            WHERE dm_groups_messages_master.rel_id = dm_group_message_rel_id
+            WHERE dm_groups_messages_master.rel_id = message_rel_id
                 AND EXISTS (
                     SELECT 1 FROM dm_groups_lines_members
                     WHERE dm_groups_lines_members.dm_group_rel_id = dm_groups_messages_master.dm_group_rel_id
@@ -514,7 +512,7 @@ CREATE POLICY "dm_groups_messages_line_reply_select_policy" ON dm_groups_message
     USING (
         EXISTS (
             SELECT 1 FROM dm_groups_messages_master
-            WHERE dm_groups_messages_master.rel_id = dm_group_message_rel_id
+            WHERE dm_groups_messages_master.rel_id = message_rel_id
                 AND EXISTS (
                     SELECT 1 FROM dm_groups_lines_members
                     WHERE dm_groups_lines_members.dm_group_rel_id = dm_groups_messages_master.dm_group_rel_id
@@ -528,7 +526,7 @@ CREATE POLICY "dm_groups_messages_line_reply_insert_policy" ON dm_groups_message
     WITH CHECK (
         EXISTS (
             SELECT 1 FROM dm_groups_messages_master
-            WHERE dm_groups_messages_master.rel_id = dm_group_message_rel_id
+            WHERE dm_groups_messages_master.rel_id = message_rel_id
                 AND EXISTS (
                     SELECT 1 FROM dm_groups_lines_members
                     WHERE dm_groups_lines_members.dm_group_rel_id = dm_groups_messages_master.dm_group_rel_id
@@ -542,7 +540,7 @@ CREATE POLICY "dm_groups_messages_line_reply_update_policy" ON dm_groups_message
     USING (
         EXISTS (
             SELECT 1 FROM dm_groups_messages_master
-            WHERE dm_groups_messages_master.rel_id = dm_group_message_rel_id
+            WHERE dm_groups_messages_master.rel_id = message_rel_id
                 AND EXISTS (
                     SELECT 1 FROM dm_groups_lines_members
                     WHERE dm_groups_lines_members.dm_group_rel_id = dm_groups_messages_master.dm_group_rel_id
@@ -553,7 +551,7 @@ CREATE POLICY "dm_groups_messages_line_reply_update_policy" ON dm_groups_message
     WITH CHECK (
         EXISTS (
             SELECT 1 FROM dm_groups_messages_master
-            WHERE dm_groups_messages_master.rel_id = dm_group_message_rel_id
+            WHERE dm_groups_messages_master.rel_id = message_rel_id
                 AND EXISTS (
                     SELECT 1 FROM dm_groups_lines_members
                     WHERE dm_groups_lines_members.dm_group_rel_id = dm_groups_messages_master.dm_group_rel_id
@@ -567,7 +565,7 @@ CREATE POLICY "dm_groups_messages_line_reply_delete_policy" ON dm_groups_message
     USING (
         EXISTS (
             SELECT 1 FROM dm_groups_messages_master
-            WHERE dm_groups_messages_master.rel_id = dm_group_message_rel_id
+            WHERE dm_groups_messages_master.rel_id = message_rel_id
                 AND EXISTS (
                     SELECT 1 FROM dm_groups_lines_members
                     WHERE dm_groups_lines_members.dm_group_rel_id = dm_groups_messages_master.dm_group_rel_id
