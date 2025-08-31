@@ -1,23 +1,26 @@
 import { Hono } from 'hono';
 import { createSupabaseClientMW } from './_cmn/create_supaclient';
 import app_tags from './tags';
-import { ApiError, ApiErrorFatal, ApiErrorNotFound } from './_cmn/error';
+import { ApiError, ApiErrorFatal, ApiErrorNotFound, ApiErrorTransient } from './_cmn/error';
 import { getEnvMW } from './_cmn/get_env';
+import { logger } from 'hono/logger';
 
-const app = new Hono();
+const apiApp = new Hono().basePath("/api");
 
-app.use('*', getEnvMW, createSupabaseClientMW);
+apiApp.use('*', logger(), getEnvMW, createSupabaseClientMW);
 
-app.route('/tags', app_tags);
+apiApp.route('/tags', app_tags);
 
-app.notFound((c) => {
+apiApp.notFound(() => {
     throw new ApiErrorNotFound('API Endpoint');
 });
 
-app.onError(async (err, c) => {
+apiApp.onError(async (err, c) => {
     const castedErr = err instanceof ApiError ? err : new ApiErrorFatal(`unknown error`);
-    await castedErr.logging();
+    if (castedErr instanceof ApiErrorFatal || castedErr instanceof ApiErrorTransient) {
+        await castedErr.logging();
+    }
     return castedErr.intoResp(c);
 });
 
-export default app;
+export default apiApp;
