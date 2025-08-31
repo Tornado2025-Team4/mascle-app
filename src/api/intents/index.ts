@@ -4,9 +4,9 @@ import post from './post';
 import { verifyJwtMW } from '../_cmn/verify_jwt';
 import { createSupabaseSessMW } from '../_cmn/create_supasess';
 
-const app_tags = new Hono();
+const app_intents = new Hono();
 
-app_tags.get('/', get);
-app_tags.post('/', verifyJwtMW, createSupabaseSessMW, post);
+app_intents.get('/', get);
+app_intents.post('/', verifyJwtMW, createSupabaseSessMW, post);
 
-export default app_tags;
+export default app_intents;

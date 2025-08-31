@@ -23,7 +23,8 @@ export class ApiErrorResp {
         return c.json({
             status: this.status,
             title: this.title,
-            message: this.message
+            message: this.message,
+            detail: this.detail
         }, this.status as ContentfulStatusCode);
     }
 }

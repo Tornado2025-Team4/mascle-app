@@ -23,9 +23,9 @@ export default async function get(c: Context) {
 
     const rq = parseReqQuery(c);
 
-    let query = spClAnon.from('tags_master').select('pub_id,name');
+    let query = spClAnon.from('intents_master').select('pub_id,intent');
     if (rq.name) {
-        query = query.ilike('name', `%${rq.name}%`);
+        query = query.ilike('intent', `%${rq.name}%`);
     }
     if (rq.ids && 0 < rq.ids.length) {
         query = query.in('pub_id', rq.ids);
@@ -34,12 +34,12 @@ export default async function get(c: Context) {
 
     const { data, error } = await query;
     if (error) {
-        throw new ApiErrorFatal(`failed to fetch tags ${error.message}`);
+        throw new ApiErrorFatal(`failed to fetch intents ${error.message}`);
     }
 
     const result: Record<string, string> = {};
     for (const row of data ?? []) {
-        result[row.pub_id] = row.name;
+        result[row.pub_id] = row.intent;
     }
 
     return c.json(result);

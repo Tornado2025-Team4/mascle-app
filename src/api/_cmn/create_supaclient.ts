@@ -17,6 +17,11 @@ export const createSupabaseClient = async (c: Context):
 }
 
 export const createSupabaseClientMW: MiddlewareHandler = async (c, next) => {
+    if (c.get('supabaseClientAnon') && c.get('supabaseClientService')) {
+        await next();
+        return;
+    }
+
     const { anon, service } = await createSupabaseClient(c);
 
     c.set('supabaseClientAnon', anon);

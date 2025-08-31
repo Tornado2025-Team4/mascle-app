@@ -4,7 +4,7 @@ CREATE TABLE users_line_profile (
     updated_at                      TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
 
     user_rel_id                     BIGINT          NOT NULL UNIQUE REFERENCES users_master(rel_id) ON DELETE CASCADE,
-    display_name                    VARCHAR(100)    NOT NULL,
+    display_name                    VARCHAR(100),
     description                     TEXT,
     icon_rel_id                     UUID            REFERENCES storage.objects(id),
     birth_date                      DATE,

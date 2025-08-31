@@ -129,8 +129,22 @@ SELECT
     s.pub_id,
     u.anon_pub_id as user_anon_pub_id,
 
-    (po.no_hideall_on_offline = true AND check_relationship_access(u.rel_id, po.status)) as privacy_allowed_status,
-    (po.no_hideall_on_offline = true AND check_relationship_access(u.rel_id, po.status_location)) as privacy_allowed_location,
+    (po.no_hideall_on_offline = true
+        AND check_relationship_access(u.rel_id, po.status)
+        AND s.rel_id = (
+            SELECT s2.rel_id FROM status_master s2
+            WHERE s2.user_rel_id = s.user_rel_id
+            ORDER BY s2.started_at DESC LIMIT 1
+        )
+    ) as privacy_allowed,
+        (po.no_hideall_on_offline = true
+        AND check_relationship_access(u.rel_id, po.status_location)
+        AND s.rel_id = (
+            SELECT s2.rel_id FROM status_master s2
+            WHERE s2.user_rel_id = s.user_rel_id
+            ORDER BY s2.started_at DESC LIMIT 1
+        )
+    ) as privacy_allowed_location,
 
     CASE
         WHEN po.no_hideall_on_offline = true AND check_relationship_access(u.rel_id, po.status) THEN
