@@ -1,9 +1,6 @@
 CREATE POLICY "users_master_select_policy" ON users_master
     FOR SELECT
-    USING (
-        pub_id = auth.uid()
-        -- 本人以外はビュー経由
-    );
+    USING (TRUE);
 
 CREATE POLICY "users_master_insert_policy" ON users_master
     FOR INSERT

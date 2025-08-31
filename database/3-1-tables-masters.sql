@@ -8,7 +8,7 @@ CREATE TABLE users_master (
     handle                          VARCHAR(31)     NOT NULL UNIQUE,
 
     CONSTRAINT users_master_anon_pub_id_format CHECK (anon_pub_id ~ '^~[a-zA-Z0-9_-]{21}$'),
-    CONSTRAINT users_master_handle_format CHECK (handle ~ '^@[a-zA-Z0-9_-\.]{3,30}$')
+    CONSTRAINT users_master_handle_format CHECK (handle ~ '^@[a-zA-Z0-9_\.-]{3,30}$')
 );
 
 CREATE UNIQUE INDEX idx__users_master__pub_id ON users_master (pub_id);

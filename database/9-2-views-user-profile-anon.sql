@@ -1,4 +1,4 @@
-CREATE VIEW view_users_line_profile_offline AS
+CREATE VIEW view_users_line_profile_anon AS
 SELECT
     u.anon_pub_id,
 
@@ -75,10 +75,10 @@ SELECT
     END as skill_level
 FROM users_master u
 LEFT JOIN users_line_profile p ON u.rel_id = p.user_rel_id
-LEFT JOIN users_line_privacy_offline po ON u.rel_id = po.user_rel_id;
+LEFT JOIN users_line_privacy_anon po ON u.rel_id = po.user_rel_id;
 
 
-CREATE VIEW view_users_lines_tags_offline AS
+CREATE VIEW view_users_lines_tags_anon AS
 SELECT
     u.anon_pub_id as user_anon_pub_id,
     ut.user_rel_id,
@@ -91,10 +91,10 @@ SELECT
     END as tag_rel_id
 FROM users_lines_tags ut
 LEFT JOIN users_master u ON ut.user_rel_id = u.rel_id
-LEFT JOIN users_line_privacy_offline po ON u.rel_id = po.user_rel_id;
+LEFT JOIN users_line_privacy_anon po ON u.rel_id = po.user_rel_id;
 
 
-CREATE VIEW view_users_lines_intents_offline AS
+CREATE VIEW view_users_lines_intents_anon AS
 SELECT
     u.anon_pub_id as user_anon_pub_id,
 
@@ -106,10 +106,10 @@ SELECT
     END as intent_rel_id
 FROM users_lines_intents ui
 LEFT JOIN users_master u ON ui.user_rel_id = u.rel_id
-LEFT JOIN users_line_privacy_offline po ON u.rel_id = po.user_rel_id;
+LEFT JOIN users_line_privacy_anon po ON u.rel_id = po.user_rel_id;
 
 
-CREATE VIEW view_users_lines_intent_bodyparts_offline AS
+CREATE VIEW view_users_lines_intent_bodyparts_anon AS
 SELECT
     u.anon_pub_id as user_anon_pub_id,
 
@@ -121,10 +121,10 @@ SELECT
     END as bodypart_rel_id
 FROM users_lines_intent_bodyparts uib
 LEFT JOIN users_master u ON uib.user_rel_id = u.rel_id
-LEFT JOIN users_line_privacy_offline po ON u.rel_id = po.user_rel_id;
+LEFT JOIN users_line_privacy_anon po ON u.rel_id = po.user_rel_id;
 
 
-CREATE VIEW view_status_master_offline AS
+CREATE VIEW view_status_master_anon AS
 SELECT
     s.pub_id,
     u.anon_pub_id as user_anon_pub_id,
@@ -188,10 +188,10 @@ SELECT
     END as gym_rel_id
 FROM status_master s
 LEFT JOIN users_master u ON s.user_rel_id = u.rel_id
-LEFT JOIN users_line_privacy_offline po ON u.rel_id = po.user_rel_id;
+LEFT JOIN users_line_privacy_anon po ON u.rel_id = po.user_rel_id;
 
 
-CREATE VIEW view_users_summary_offline AS
+CREATE VIEW view_users_summary_anon AS
 SELECT
     u1.anon_pub_id as user_anon_pub_id,
 
@@ -220,10 +220,10 @@ SELECT
         ELSE NULL
     END as posts_count
 FROM users_master u1
-LEFT JOIN users_line_privacy_offline po1 ON u1.rel_id = po1.user_rel_id;
+LEFT JOIN users_line_privacy_anon po1 ON u1.rel_id = po1.user_rel_id;
 
 
-CREATE VIEW view_users_lines_followings_offline AS
+CREATE VIEW view_users_lines_followings_anon AS
 SELECT
     f.rel_id,
     f.user_rel_id,
@@ -270,5 +270,5 @@ SELECT
     END as followed_at
 FROM users_lines_followings f
 LEFT JOIN users_master u1 ON f.user_rel_id = u1.rel_id
-LEFT JOIN users_line_privacy_offline po1 ON f.user_rel_id = po1.user_rel_id
-LEFT JOIN users_line_privacy_offline po2 ON f.target_user_rel_id = po2.user_rel_id;
+LEFT JOIN users_line_privacy_anon po1 ON f.user_rel_id = po1.user_rel_id
+LEFT JOIN users_line_privacy_anon po2 ON f.target_user_rel_id = po2.user_rel_id;

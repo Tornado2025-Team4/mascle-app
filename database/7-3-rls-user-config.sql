@@ -26,19 +26,19 @@ CREATE POLICY "users_line_config_delete_policy" ON users_line_config
     );
 
 
-CREATE POLICY "users_line_privacy_online_select_policy" ON users_line_privacy_online
+CREATE POLICY "users_line_privacy_select_policy" ON users_line_privacy
     FOR SELECT
     USING (
         user_rel_id = get_current_user_rel_id()
     );
 
-CREATE POLICY "users_line_privacy_online_insert_policy" ON users_line_privacy_online
+CREATE POLICY "users_line_privacy_insert_policy" ON users_line_privacy
     FOR INSERT
     WITH CHECK (
         user_rel_id = get_current_user_rel_id()
     );
 
-CREATE POLICY "users_line_privacy_online_update_policy" ON users_line_privacy_online
+CREATE POLICY "users_line_privacy_update_policy" ON users_line_privacy
     FOR UPDATE
     USING (
         user_rel_id = get_current_user_rel_id()
@@ -47,26 +47,26 @@ CREATE POLICY "users_line_privacy_online_update_policy" ON users_line_privacy_on
         user_rel_id = get_current_user_rel_id()
     );
 
-CREATE POLICY "users_line_privacy_online_delete_policy" ON users_line_privacy_online
+CREATE POLICY "users_line_privacy_delete_policy" ON users_line_privacy
     FOR DELETE
     USING (
         user_rel_id = get_current_user_rel_id()
     );
 
 
-CREATE POLICY "users_line_privacy_offline_select_policy" ON users_line_privacy_offline
+CREATE POLICY "users_line_privacy_anon_select_policy" ON users_line_privacy_anon
     FOR SELECT
     USING (
         user_rel_id = get_current_user_rel_id()
     );
 
-CREATE POLICY "users_line_privacy_offline_insert_policy" ON users_line_privacy_offline
+CREATE POLICY "users_line_privacy_anon_insert_policy" ON users_line_privacy_anon
     FOR INSERT
     WITH CHECK (
         user_rel_id = get_current_user_rel_id()
     );
 
-CREATE POLICY "users_line_privacy_offline_update_policy" ON users_line_privacy_offline
+CREATE POLICY "users_line_privacy_anon_update_policy" ON users_line_privacy_anon
     FOR UPDATE
     USING (
         user_rel_id = get_current_user_rel_id()
@@ -75,7 +75,7 @@ CREATE POLICY "users_line_privacy_offline_update_policy" ON users_line_privacy_o
         user_rel_id = get_current_user_rel_id()
     );
 
-CREATE POLICY "users_line_privacy_offline_delete_policy" ON users_line_privacy_offline
+CREATE POLICY "users_line_privacy_anon_delete_policy" ON users_line_privacy_anon
     FOR DELETE
     USING (
         user_rel_id = get_current_user_rel_id()

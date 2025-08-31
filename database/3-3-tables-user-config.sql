@@ -15,7 +15,7 @@ CREATE TABLE users_line_config (
 CREATE UNIQUE INDEX idx__users_line_config__user_rel_id ON users_line_config (user_rel_id);
 
 
-CREATE TABLE users_line_privacy_online (
+CREATE TABLE users_line_privacy (
     rel_id                          BIGSERIAL       PRIMARY KEY,
     created_at                      TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
     updated_at                      TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
@@ -49,19 +49,18 @@ CREATE TABLE users_line_privacy_online (
     belonging_dm_groups             relship         DEFAULT 'no-one'
 );
 
-CREATE UNIQUE INDEX idx__users_line_privacy_online__user_rel_id ON users_line_privacy_online (user_rel_id);
+CREATE UNIQUE INDEX idx__users_line_privacy__user_rel_id ON users_line_privacy (user_rel_id);
 
 
--- オフラインマッチ時にオンライン時より更に表示項目を絞るための設定
--- オフラインマッチ時には pub_id ではなく anon_pub_id がクライアントに渡される(pub_idがなければonline判定にならない)
-CREATE TABLE users_line_privacy_offline (
+-- 匿名時に更に表示項目を絞るための設定
+CREATE TABLE users_line_privacy_anon (
     rel_id                          BIGSERIAL       PRIMARY KEY,
     created_at                      TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
     updated_at                      TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
 
     user_rel_id                     BIGINT          NOT NULL REFERENCES users_master(rel_id) ON DELETE CASCADE,
 
-    no_anonymous                    BOOLEAN         DEFAULT FALSE,
+    no_hideall_on_offline           BOOLEAN         DEFAULT FALSE,
     -- これが TRUE の場合のみ以下のプロパティが条件付きで公開される
 
     handle_id                       relship         DEFAULT 'follow-followers',
@@ -87,4 +86,4 @@ CREATE TABLE users_line_privacy_offline (
     posts_count                     relship         DEFAULT 'anyone'
 );
 
-CREATE UNIQUE INDEX idx__users_line_privacy_offline__user_rel_id ON users_line_privacy_offline (user_rel_id);
+CREATE UNIQUE INDEX idx__users_line_privacy_anon__user_rel_id ON users_line_privacy_anon (user_rel_id);

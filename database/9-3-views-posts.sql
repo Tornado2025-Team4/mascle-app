@@ -56,7 +56,7 @@ SELECT
 FROM posts_master p
 LEFT JOIN users_master u ON p.posted_user_rel_id = u.rel_id
 LEFT JOIN gyms_master g ON p.trained_gym_rel_id = g.rel_id
-LEFT JOIN users_line_privacy_online po ON u.rel_id = po.user_rel_id
+LEFT JOIN users_line_privacy po ON u.rel_id = po.user_rel_id
 LEFT JOIN (
     SELECT post_rel_id, COUNT(*) as count
     FROM posts_lines_likes
@@ -90,7 +90,7 @@ FROM posts_lines_tags pt
 LEFT JOIN posts_master p ON pt.post_rel_id = p.rel_id
 LEFT JOIN tags_master t ON pt.tag_rel_id = t.rel_id
 LEFT JOIN users_master u ON p.posted_user_rel_id = u.rel_id
-LEFT JOIN users_line_privacy_online po ON u.rel_id = po.user_rel_id;
+LEFT JOIN users_line_privacy po ON u.rel_id = po.user_rel_id;
 
 
 CREATE VIEW view_posts_lines_body_mentions AS
@@ -117,7 +117,7 @@ FROM posts_lines_body_mentions pm
 LEFT JOIN posts_master p ON pm.post_rel_id = p.rel_id
 LEFT JOIN users_master u_poster ON p.posted_user_rel_id = u_poster.rel_id
 LEFT JOIN users_master u_mentioned ON pm.target_user_rel_id = u_mentioned.rel_id
-LEFT JOIN users_line_privacy_online po ON u_poster.rel_id = po.user_rel_id;
+LEFT JOIN users_line_privacy po ON u_poster.rel_id = po.user_rel_id;
 
 
 CREATE VIEW view_posts_lines_photos AS
@@ -143,7 +143,7 @@ SELECT
 FROM posts_lines_photos pp
 LEFT JOIN posts_master p ON pp.post_rel_id = p.rel_id
 LEFT JOIN users_master u ON p.posted_user_rel_id = u.rel_id
-LEFT JOIN users_line_privacy_online po ON u.rel_id = po.user_rel_id;
+LEFT JOIN users_line_privacy po ON u.rel_id = po.user_rel_id;
 
 
 CREATE VIEW view_posts_lines_likes AS
@@ -165,10 +165,10 @@ FROM posts_lines_likes pl
 LEFT JOIN posts_master p ON pl.post_rel_id = p.rel_id
 LEFT JOIN users_master u_poster ON p.posted_user_rel_id = u_poster.rel_id
 LEFT JOIN users_master u_liker ON pl.user_rel_id = u_liker.rel_id
-LEFT JOIN users_line_privacy_online po ON u_poster.rel_id = po.user_rel_id;
+LEFT JOIN users_line_privacy po ON u_poster.rel_id = po.user_rel_id;
 
 
-CREATE VIEW view_comments_master_online AS
+CREATE VIEW view_comments_master AS
 SELECT
     c.rel_id,
 
@@ -202,11 +202,11 @@ FROM comments_master c
 LEFT JOIN posts_master p ON c.post_rel_id = p.rel_id
 LEFT JOIN users_master u_poster ON p.posted_user_rel_id = u_poster.rel_id
 LEFT JOIN users_master u_commenter ON c.user_rel_id = u_commenter.rel_id
-LEFT JOIN users_line_privacy_online po ON u_poster.rel_id = po.user_rel_id;
+LEFT JOIN users_line_privacy po ON u_poster.rel_id = po.user_rel_id;
 
 
 
-CREATE VIEW view_comments_lines_mentions_online AS
+CREATE VIEW view_comments_lines_mentions AS
 SELECT
     cm.rel_id,
 
@@ -232,4 +232,4 @@ LEFT JOIN posts_master p ON c.post_rel_id = p.rel_id
 LEFT JOIN users_master u_poster ON p.posted_user_rel_id = u_poster.rel_id
 LEFT JOIN users_master u_commenter ON c.user_rel_id = u_commenter.rel_id
 LEFT JOIN users_master u_mentioned ON cm.user_rel_id = u_mentioned.rel_id
-LEFT JOIN users_line_privacy_online po ON u_poster.rel_id = po.user_rel_id;
+LEFT JOIN users_line_privacy po ON u_poster.rel_id = po.user_rel_id;

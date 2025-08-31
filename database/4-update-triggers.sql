@@ -24,8 +24,8 @@ CREATE TRIGGER trg_status_master_updated_at BEFORE UPDATE ON status_master FOR E
 
 -- User config tables
 CREATE TRIGGER trg_users_line_config_updated_at BEFORE UPDATE ON users_line_config FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER trg_users_line_privacy_online_updated_at BEFORE UPDATE ON users_line_privacy_online FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER trg_users_line_privacy_offline_updated_at BEFORE UPDATE ON users_line_privacy_offline FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER trg_users_line_privacy_updated_at BEFORE UPDATE ON users_line_privacy FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER trg_users_line_privacy_anon_updated_at BEFORE UPDATE ON users_line_privacy_anon FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- User relationships
 CREATE TRIGGER trg_users_lines_followings_updated_at BEFORE UPDATE ON users_lines_followings FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();

@@ -35,7 +35,7 @@ CREATE TABLE notices_lines_mentions (
 
     notice_rel_id                   BIGINT          NOT NULL REFERENCES notices_master(rel_id) ON DELETE CASCADE,
     target_user_rel_id              BIGINT          NOT NULL REFERENCES users_master(rel_id) ON DELETE CASCADE,
-    use_offline_pub_id              BOOLEAN         NOT NULL DEFAULT FALSE,
+    use_anon_pub_id                 BOOLEAN         NOT NULL DEFAULT FALSE,
     offset_num                      SMALLINT        NOT NULL,
 
     use_to_notification_icon        BOOLEAN         NOT NULL DEFAULT FALSE,
