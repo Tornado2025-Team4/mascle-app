@@ -253,7 +253,7 @@ function CarouselDots({ className }: { className?: string }) {
 
   return (
     <div
-      className={cn("flex justify-center gap-2 mt-1", className)}
+      className={cn("flex justify-center gap-2 mt-3", className)}
       data-slot="carousel-dots"
     >
       {scrollSnaps.map((_, index) => (

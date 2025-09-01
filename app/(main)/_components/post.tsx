@@ -9,7 +9,7 @@ import {
   CarouselDots,
 } from "@/components/ui/carousel"
 
-import { BsThreeDots, BsHeart, BsChat } from "react-icons/bs";
+import { BsChat } from "react-icons/bs";
 import { ImFire } from "react-icons/im";
 import { FaRegHandshake } from "react-icons/fa";
 import Link from 'next/link';
@@ -32,7 +32,7 @@ interface PostProps {
 const Post = ({ post_id, user_display_name, user_icon, body, tags, gym_name, photos, posted_at, like_count, comments_count }: PostProps) => {
   return (
     <div>
-      <header className="flex items-center gap-2 justify-between">
+      <header className="flex items-center gap-2 justify-between pb-2">
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2"> <Image src={user_icon} alt="post image" width={40} height={40} className="rounded-full" /> </div>
           <div className="flex flex-col">
@@ -40,14 +40,12 @@ const Post = ({ post_id, user_display_name, user_icon, body, tags, gym_name, pho
             <span> {gym_name} </span>
           </div>
         </div>
-        <div className="flex items-center gap-2 text-2xl cursor-pointer px-3"> <BsThreeDots />
-        </div>
       </header>
       <Carousel>
         <CarouselContent>
           {photos.map((photo, index) => (
             <CarouselItem key={index}>
-              <Link href={`/post/${post_id}/${index + 1}`} className="p-1">
+              <Link href={`/post/${post_id}/${index + 1}`}>
                 <Image
                   src={photo.url}
                   alt="post image"
@@ -67,7 +65,7 @@ const Post = ({ post_id, user_display_name, user_icon, body, tags, gym_name, pho
         aria-label={`${user_display_name}の投稿詳細`}
       >
         <div
-          className="flex items-center gap-4 text-2xl px-5 pt-3"
+          className="flex items-center gap-4 text-xl px-5 pt-3"
           onClick={e => e.preventDefault()}
         >
           <button
@@ -101,7 +99,7 @@ const Post = ({ post_id, user_display_name, user_icon, body, tags, gym_name, pho
           </button>
 
           <button
-            className="flex items-center gap-2 text-4xl cursor-pointer hover:scale-110 transition-all duration-300"
+            className="flex items-center gap-2 text-3xl cursor-pointer hover:scale-110 transition-all duration-300"
             tabIndex={0}
             type="button"
             onClick={e => {
@@ -118,8 +116,8 @@ const Post = ({ post_id, user_display_name, user_icon, body, tags, gym_name, pho
         <div className="px-5 pt-1">
           <div>{body}</div>
           <div>
-            {tags.map((tag) => (
-              <span key={tag}>{tag} </span>
+            {tags.map((tag, index) => (
+              <span key={index} className="text-blue-500 underline">{tag} </span>
             ))}
           </div>
           <div>{posted_at}</div>

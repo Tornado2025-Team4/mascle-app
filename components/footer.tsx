@@ -14,7 +14,7 @@ const Footer = () => {
   const pathname = usePathname();
 
   return (
-    <footer className="fixed bottom-0 left-0 w-full h-[10vh] bg-gray-100 flex items-center justify-center z-50">
+    <footer className="fixed bottom-0 left-0 w-full h-[10vh] bg-gray-200 flex items-center justify-center z-50">
       <nav aria-label="フッターナビゲーション" className="w-full">
         <ul className="flex items-center justify-center gap-12 text-4xl">
           {/* Home */}
