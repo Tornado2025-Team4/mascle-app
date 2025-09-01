@@ -5,7 +5,7 @@ export default function Home() {
   return (
     <div>
       <Header />
-      <main>
+      <main className="h-[80vh]">
           <PostList/>
       </main>
     </div>

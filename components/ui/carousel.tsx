@@ -231,6 +231,46 @@ function CarouselNext({
   )
 }
 
+function CarouselDots({ className }: { className?: string }) {
+  const { api } = useCarousel()
+  const [selectedIndex, setSelectedIndex] = React.useState(0)
+  const [scrollSnaps, setScrollSnaps] = React.useState<number[]>([])
+
+  React.useEffect(() => {
+    if (!api) return
+    setScrollSnaps(api.scrollSnapList()) // スライドの数を取得
+    setSelectedIndex(api.selectedScrollSnap()) // 現在のスライド
+
+    const onSelect = () => setSelectedIndex(api.selectedScrollSnap())
+    api.on("select", onSelect)
+
+    return () => {
+      api.off("select", onSelect)
+    }
+  }, [api])
+
+  if (!api) return null
+
+  return (
+    <div
+      className={cn("flex justify-center gap-2 mt-3", className)}
+      data-slot="carousel-dots"
+    >
+      {scrollSnaps.map((_, index) => (
+        <button
+          key={index}
+          onClick={() => api.scrollTo(index)}
+          className={cn(
+            "w-2 h-2 rounded-full transition-colors",
+            index === selectedIndex ? "bg-black" : "bg-gray-300"
+          )}
+          aria-label={`Go to slide ${index + 1}`}
+        />
+      ))}
+    </div>
+  )
+}
+
 export {
   type CarouselApi,
   Carousel,
@@ -238,4 +278,5 @@ export {
   CarouselItem,
   CarouselPrevious,
   CarouselNext,
+  CarouselDots,
 }
