@@ -8,11 +8,11 @@ import { FaRegSquarePlus, FaSquarePlus } from "react-icons/fa6";
 import { RiUser3Line } from "react-icons/ri";
 import { RiUser3Fill } from "react-icons/ri";
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useParams } from 'next/navigation';
 
 const Footer = () => {
   const pathname = usePathname();
-
+  const userId = useParams().userId;
   return (
     <footer className="fixed bottom-0 left-0 w-full h-[10vh] bg-gray-200 flex items-center justify-center z-50">
       <nav aria-label="フッターナビゲーション" className="w-full">
@@ -52,8 +52,8 @@ const Footer = () => {
 
           {/* Profile */}
           <li>
-            <Link href="/profile" aria-label="プロフィール">
-              {pathname === "/profile" ? (
+            <Link href={`/${userId}`} aria-label="プロフィール">
+              {pathname === `/${userId}` || pathname === `/${userId}/follows` || pathname === `/${userId}/edit` ? (
                 <RiUser3Fill />
               ) : (
                 <RiUser3Line />
