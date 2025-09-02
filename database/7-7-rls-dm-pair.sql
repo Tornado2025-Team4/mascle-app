@@ -49,37 +49,49 @@ CREATE POLICY "dm_pair_messages_master_select_policy" ON dm_pair_messages_master
 CREATE POLICY "dm_pair_messages_master_insert_policy" ON dm_pair_messages_master
     FOR INSERT
     WITH CHECK (
+        sent_user_rel_id = get_current_user_rel_id()
+        AND
         dm_pair_rel_id IN (
             SELECT rel_id FROM dm_pairs_master
-            WHERE user_a_rel_id = get_current_user_rel_id()
-                OR user_b_rel_id = get_current_user_rel_id()
+            WHERE (user_a_rel_id = get_current_user_rel_id() OR user_b_rel_id = get_current_user_rel_id())
+                AND user_a_allowed = TRUE
+                AND user_b_allowed = TRUE
         )
     );
 
 CREATE POLICY "dm_pair_messages_master_update_policy" ON dm_pair_messages_master
     FOR UPDATE
     USING (
+        sent_user_rel_id = get_current_user_rel_id()
+        AND
         dm_pair_rel_id IN (
             SELECT rel_id FROM dm_pairs_master
-            WHERE user_a_rel_id = get_current_user_rel_id()
-                OR user_b_rel_id = get_current_user_rel_id()
+            WHERE (user_a_rel_id = get_current_user_rel_id() OR user_b_rel_id = get_current_user_rel_id())
+                AND user_a_allowed = TRUE
+                AND user_b_allowed = TRUE
         )
     )
     WITH CHECK (
+        sent_user_rel_id = get_current_user_rel_id()
+        AND
         dm_pair_rel_id IN (
             SELECT rel_id FROM dm_pairs_master
-            WHERE user_a_rel_id = get_current_user_rel_id()
-                OR user_b_rel_id = get_current_user_rel_id()
+            WHERE (user_a_rel_id = get_current_user_rel_id() OR user_b_rel_id = get_current_user_rel_id())
+                AND user_a_allowed = TRUE
+                AND user_b_allowed = TRUE
         )
     );
 
 CREATE POLICY "dm_pair_messages_master_delete_policy" ON dm_pair_messages_master
     FOR DELETE
     USING (
+        sent_user_rel_id = get_current_user_rel_id()
+        AND
         dm_pair_rel_id IN (
             SELECT rel_id FROM dm_pairs_master
-            WHERE user_a_rel_id = get_current_user_rel_id()
-                OR user_b_rel_id = get_current_user_rel_id()
+            WHERE (user_a_rel_id = get_current_user_rel_id() OR user_b_rel_id = get_current_user_rel_id())
+                AND user_a_allowed = TRUE
+                AND user_b_allowed = TRUE
         )
     );
 

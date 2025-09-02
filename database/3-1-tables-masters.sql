@@ -24,8 +24,8 @@ CREATE TABLE tags_master (
     pub_id                          CHAR(21)        NOT NULL UNIQUE,
     name                            VARCHAR(100)    NOT NULL,
 
-    -- Tag Name not empty after trimming whitespace
-    CONSTRAINT tags_master_name_not_empty CHECK (LENGTH(TRIM(name)) > 0)
+    CONSTRAINT tags_master_name_not_empty CHECK (LENGTH(TRIM(name)) > 0),
+    CONSTRAINT tags_master_name_no_hash_space CHECK (name !~ '[# 　]')
 );
 
 CREATE UNIQUE INDEX idx__tags_master__pub_id ON tags_master (pub_id);

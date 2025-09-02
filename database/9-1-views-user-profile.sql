@@ -1,312 +1,239 @@
-CREATE VIEW view_users_line_profile AS
+-- 実プロフィールビュー
+CREATE OR REPLACE VIEW views_user_profile AS
 SELECT
-    u.pub_id,
-    u.anon_pub_id,
-    u.handle,
+    um.pub_id,
+    -- NOTE: ここで anon_pub_id を返すとそれで検索可能になってしまうため意図的に欠落
+    um.handle,
 
-    check_relationship_access(u.rel_id, po.display_name) as privacy_allowed_display_name,
-    check_relationship_access(u.rel_id, po.description) as privacy_allowed_description,
-    check_relationship_access(u.rel_id, po.icon) as privacy_allowed_icon,
-    check_relationship_access(u.rel_id, po.birth_date) as privacy_allowed_birth_date,
-    check_relationship_access(u.rel_id, po.age) as privacy_allowed_age,
-    check_relationship_access(u.rel_id, po.generation) as privacy_allowed_generation,
-    check_relationship_access(u.rel_id, po.gender) as privacy_allowed_gender,
-    check_relationship_access(u.rel_id, po.registered_since) as privacy_allowed_registered_since,
-    check_relationship_access(u.rel_id, po.training_since) as privacy_allowed_training_since,
-    check_relationship_access(u.rel_id, po.skill_level) as privacy_allowed_skill_level,
+    check_relationship_access(um.rel_id, po.display_name) as privacy_allowed_display_name,
+    check_relationship_access(um.rel_id, po.description) as privacy_allowed_description,
+    check_relationship_access(um.rel_id, po.tags) as privacy_allowed_tags,
+    check_relationship_access(um.rel_id, po.icon) as privacy_allowed_icon,
+    check_relationship_access(um.rel_id, po.birth_date) as privacy_allowed_birth_date,
+    check_relationship_access(um.rel_id, po.age) as privacy_allowed_age,
+    check_relationship_access(um.rel_id, po.generation) as privacy_allowed_generation,
+    check_relationship_access(um.rel_id, po.gender) as privacy_allowed_gender,
+    check_relationship_access(um.rel_id, po.registered_since) as privacy_allowed_registered_since,
+    check_relationship_access(um.rel_id, po.training_since) as privacy_allowed_training_since,
+    check_relationship_access(um.rel_id, po.skill_level) as privacy_allowed_skill_level,
+    check_relationship_access(um.rel_id, po.intents) as privacy_allowed_intents,
+    check_relationship_access(um.rel_id, po.intent_bodyparts) as privacy_allowed_intent_bodyparts,
+    check_relationship_access(um.rel_id, po.belonging_gyms) as privacy_allowed_belonging_gyms,
+    check_relationship_access(um.rel_id, po.followings_count) as privacy_allowed_followings_count,
+    check_relationship_access(um.rel_id, po.followers_count) as privacy_allowed_followers_count,
+    check_relationship_access(um.rel_id, po.posts_count) as privacy_allowed_posts_count,
 
     CASE
-        WHEN check_relationship_access(u.rel_id, po.display_name) THEN p.display_name
+        WHEN check_relationship_access(um.rel_id, po.display_name) THEN ulp.display_name
         ELSE NULL
     END as display_name,
 
     CASE
-        WHEN check_relationship_access(u.rel_id, po.description) THEN p.description
+        WHEN check_relationship_access(um.rel_id, po.description) THEN ulp.description
         ELSE NULL
     END as description,
 
     CASE
-        WHEN check_relationship_access(u.rel_id, po.icon) THEN p.icon_rel_id
-        ELSE NULL
-    END as icon_rel_id,
-
-    CASE
-        WHEN check_relationship_access(u.rel_id, po.birth_date) THEN p.birth_date
-        ELSE NULL
-    END as birth_date,
-
-    CASE
-        WHEN check_relationship_access(u.rel_id, po.age) THEN EXTRACT(YEAR FROM AGE(CURRENT_DATE, p.birth_date))::INTEGER
-        ELSE NULL
-    END as age,
-
-    CASE
-        WHEN check_relationship_access(u.rel_id, po.generation) THEN
-            CASE WHEN p.birth_date IS NOT NULL THEN (EXTRACT(YEAR FROM AGE(CURRENT_DATE, p.birth_date))::INTEGER / 10) END
-        ELSE NULL
-    END as generation,
-
-    CASE
-        WHEN check_relationship_access(u.rel_id, po.gender) THEN p.gender
-        ELSE NULL
-    END as gender,
-
-    CASE
-        WHEN check_relationship_access(u.rel_id, po.registered_since) THEN
-            (CURRENT_DATE - p.registered_at::date)
-        ELSE NULL
-    END as registered_since,
-
-    CASE
-        WHEN check_relationship_access(u.rel_id, po.training_since) THEN
-            (CURRENT_DATE - p.training_since::date)
-        ELSE NULL
-    END as training_since,
-
-    CASE
-        WHEN check_relationship_access(u.rel_id, po.skill_level) THEN p.skill_level
-        ELSE NULL
-    END as skill_level
-FROM users_master u
-LEFT JOIN users_line_profile p ON u.rel_id = p.user_rel_id
-LEFT JOIN users_line_privacy po ON u.rel_id = po.user_rel_id;
-
-
-CREATE VIEW view_users_lines_tags AS
-SELECT
-    u.pub_id as user_pub_id,
-    u.anon_pub_id as user_anon_pub_id,
-    ut.user_rel_id,
-
-    check_relationship_access(u.rel_id, po.tags) as privacy_allowed,
-
-    CASE
-        WHEN check_relationship_access(u.rel_id, po.tags) THEN ut.tag_rel_id
-        ELSE NULL
-    END as tag_rel_id
-FROM users_lines_tags ut
-LEFT JOIN users_master u ON ut.user_rel_id = u.rel_id
-LEFT JOIN users_line_privacy po ON u.rel_id = po.user_rel_id;
-
-
-CREATE VIEW view_users_lines_intents AS
-SELECT
-    u.pub_id as user_pub_id,
-    u.anon_pub_id as user_anon_pub_id,
-    ui.user_rel_id,
-
-    check_relationship_access(u.rel_id, po.intents) as privacy_allowed,
-
-    CASE
-        WHEN check_relationship_access(u.rel_id, po.intents) THEN ui.intent_rel_id
-        ELSE NULL
-    END as intent_rel_id
-FROM users_lines_intents ui
-LEFT JOIN users_master u ON ui.user_rel_id = u.rel_id
-LEFT JOIN users_line_privacy po ON u.rel_id = po.user_rel_id;
-
-
-CREATE VIEW view_users_lines_intent_bodyparts AS
-SELECT
-    u.pub_id as user_pub_id,
-    u.anon_pub_id as user_anon_pub_id,
-    uib.user_rel_id,
-
-    check_relationship_access(u.rel_id, po.intent_bodyparts) as privacy_allowed,
-
-    CASE
-        WHEN check_relationship_access(u.rel_id, po.intent_bodyparts) THEN uib.bodypart_rel_id
-        ELSE NULL
-    END as bodypart_rel_id
-FROM users_lines_intent_bodyparts uib
-LEFT JOIN users_master u ON uib.user_rel_id = u.rel_id
-LEFT JOIN users_line_privacy po ON u.rel_id = po.user_rel_id;
-
-
-CREATE VIEW view_users_lines_belonging_gyms AS
-SELECT
-    u.pub_id as user_pub_id,
-    u.anon_pub_id as user_anon_pub_id,
-    ubg.user_rel_id,
-
-    check_relationship_access(u.rel_id, po.belonging_gyms) as privacy_allowed,
-
-    CASE
-        WHEN check_relationship_access(u.rel_id, po.belonging_gyms) THEN ubg.gym_rel_id
-        ELSE NULL
-    END as gym_rel_id,
-
-    CASE
-        WHEN check_relationship_access(u.rel_id, po.belonging_gyms) THEN ubg.joined_at
-        ELSE NULL
-    END as joined_at
-FROM users_lines_belonging_gyms ubg
-LEFT JOIN users_master u ON ubg.user_rel_id = u.rel_id
-LEFT JOIN users_line_privacy po ON u.rel_id = po.user_rel_id;
-
-
-CREATE VIEW view_status_master AS
-SELECT
-    s.pub_id,
-    s.user_rel_id,
-    u.pub_id as user_pub_id,
-    u.anon_pub_id as user_anon_pub_id,
-
-    check_relationship_access(u.rel_id, po.status) as privacy_allowed,
-    check_relationship_access(u.rel_id, po.status_histories) as privacy_allowed_histories,
-    check_relationship_access(u.rel_id, po.status_location) as privacy_allowed_location,
-
-    CASE
-        WHEN check_relationship_access(u.rel_id, po.status) THEN
-            CASE
-                WHEN check_relationship_access(u.rel_id, po.status_histories) THEN s.started_at
-                WHEN s.rel_id = (
-                    SELECT s2.rel_id FROM status_master s2
-                    WHERE s2.user_rel_id = s.user_rel_id
-                    ORDER BY s2.started_at DESC LIMIT 1
-                ) THEN s.started_at
-                ELSE NULL
-            END
-        ELSE NULL
-    END as started_at,
-
-    CASE
-        WHEN check_relationship_access(u.rel_id, po.status) THEN
-            CASE
-                WHEN check_relationship_access(u.rel_id, po.status_histories) THEN s.finished_at
-                WHEN s.rel_id = (
-                    SELECT s2.rel_id FROM status_master s2
-                    WHERE s2.user_rel_id = s.user_rel_id
-                    ORDER BY s2.started_at DESC LIMIT 1
-                ) THEN s.finished_at
-                ELSE NULL
-            END
-        ELSE NULL
-    END as finished_at,
-
-    CASE
-        WHEN check_relationship_access(u.rel_id, po.status) THEN
-            CASE
-                WHEN check_relationship_access(u.rel_id, po.status_histories) THEN s.is_auto_detected
-                WHEN s.rel_id = (
-                    SELECT s2.rel_id FROM status_master s2
-                    WHERE s2.user_rel_id = s.user_rel_id
-                    ORDER BY s2.started_at DESC LIMIT 1
-                ) THEN s.is_auto_detected
-                ELSE NULL
-            END
-        ELSE NULL
-    END as is_auto_detected,
-
-    CASE
-        WHEN check_relationship_access(u.rel_id, po.status)
-            AND check_relationship_access(u.rel_id, po.status_location) THEN
-            CASE
-                WHEN check_relationship_access(u.rel_id, po.status_histories) THEN s.gym_rel_id
-                WHEN s.rel_id = (
-                    SELECT s2.rel_id FROM status_master s2
-                    WHERE s2.user_rel_id = s.user_rel_id
-                    ORDER BY s2.started_at DESC LIMIT 1
-                ) THEN s.gym_rel_id
-                ELSE NULL
-            END
-        ELSE NULL
-    END as gym_rel_id
-FROM status_master s
-LEFT JOIN users_master u ON s.user_rel_id = u.rel_id
-LEFT JOIN users_line_privacy po ON u.rel_id = po.user_rel_id;
-
-
-CREATE VIEW view_users_summary AS
-SELECT
-    u1.pub_id as user_pub_id,
-    u1.anon_pub_id as user_anon_pub_id,
-
-    check_relationship_access(u1.rel_id, po1.followings_count) as privacy_allowed_followings_count,
-    check_relationship_access(u1.rel_id, po1.followers_count) as privacy_allowed_followers_count,
-    check_relationship_access(u1.rel_id, po1.posts_count) as privacy_allowed_posts_count,
-
-    CASE
-        WHEN check_relationship_access(u1.rel_id, po1.followings_count) THEN (
-            SELECT COUNT(*) FROM users_lines_followings f WHERE f.user_rel_id = u1.rel_id
-        )
-        ELSE NULL
-    END as followings_count,
-
-    CASE
-        WHEN check_relationship_access(u1.rel_id, po1.followers_count) THEN (
-            SELECT COUNT(*) FROM users_lines_followings f WHERE f.target_user_rel_id = u1.rel_id
-        )
-        ELSE NULL
-    END as followers_count,
-
-    CASE
-        WHEN check_relationship_access(u1.rel_id, po1.posts_count) THEN (
-            SELECT COUNT(*) FROM posts_master up WHERE up.posted_user_rel_id = u1.rel_id
-        )
-        ELSE NULL
-    END as posts_count
-FROM users_master u1
-LEFT JOIN users_line_privacy po1 ON u1.rel_id = po1.user_rel_id;
-
-
-CREATE VIEW view_users_lines_followings AS
-SELECT
-    f.user_rel_id,
-    u1.pub_id as user_pub_id,
-    u1.anon_pub_id as user_anon_pub_id,
-
-    (
-        check_relationship_access(f.user_rel_id, po1.followings)
-        AND
-        check_relationship_access(f.target_user_rel_id, po2.followers)
-    ) OR f.user_rel_id = get_current_user_rel_id()
-        OR f.target_user_rel_id = get_current_user_rel_id() as privacy_allowed,
-
-    CASE
-        WHEN (
-                check_relationship_access(f.user_rel_id, po1.followings)
-                AND
-                check_relationship_access(f.target_user_rel_id, po2.followers)
+        WHEN check_relationship_access(um.rel_id, po.tags) THEN
+            COALESCE(
+                json_agg(
+                    json_build_object(
+                        'pub_id', tm.pub_id,
+                        'name', tm.name
+                    )
+                ) FILTER (WHERE tm.pub_id IS NOT NULL),
+                '[]'::json
             )
-            OR f.user_rel_id = get_current_user_rel_id()
-            OR f.target_user_rel_id = get_current_user_rel_id()
-        THEN f.target_user_rel_id
-        ELSE NULL
-    END as target_user_rel_id,
+        ELSE '[]'::json
+    END AS tags,
 
     CASE
-        WHEN (
-                check_relationship_access(f.user_rel_id, po1.followings)
-                AND
-                check_relationship_access(f.target_user_rel_id, po2.followers)
+        WHEN check_relationship_access(um.rel_id, po.icon) THEN ulp.icon_rel_id
+        ELSE NULL
+    END AS icon,
+
+    CASE
+        WHEN check_relationship_access(um.rel_id, po.birth_date) THEN ulp.birth_date
+        ELSE NULL
+    END AS birth_date,
+
+    CASE
+        WHEN check_relationship_access(um.rel_id, po.age) THEN
+            CASE
+                WHEN ulp.birth_date IS NOT NULL
+                THEN EXTRACT(YEAR FROM AGE(ulp.birth_date))::INTEGER
+                ELSE NULL
+            END
+        ELSE NULL
+    END AS age,
+
+    CASE
+        WHEN check_relationship_access(um.rel_id, po.generation) THEN
+            CASE
+                WHEN ulp.birth_date IS NOT NULL
+                THEN FLOOR(EXTRACT(YEAR FROM AGE(ulp.birth_date)) / 10) * 10
+                ELSE NULL
+            END
+        ELSE NULL
+    END AS generation,
+
+    CASE
+        WHEN check_relationship_access(um.rel_id, po.gender) THEN ulp.gender
+        ELSE NULL
+    END AS gender,
+
+    CASE
+        WHEN check_relationship_access(um.rel_id, po.registered_since) THEN ulp.registered_at
+        ELSE NULL
+    END AS registered_since,
+
+    CASE
+        WHEN check_relationship_access(um.rel_id, po.training_since) THEN ulp.training_since
+        ELSE NULL
+    END AS training_since,
+
+    CASE
+        WHEN check_relationship_access(um.rel_id, po.skill_level) THEN ulp.skill_level
+        ELSE NULL
+    END AS skill_level,
+
+    -- intents配列（サブクエリで取得）
+    CASE
+        WHEN check_relationship_access(um.rel_id, po.intents) THEN
+            (
+                SELECT COALESCE(
+                    json_agg(
+                        json_build_object(
+                            'pub_id', im.pub_id,
+                            'intent', im.intent
+                        )
+                    ),
+                    '[]'::json
+                )
+                FROM users_lines_intents uli
+                JOIN intents_master im ON uli.intent_rel_id = im.rel_id
+                WHERE uli.user_rel_id = um.rel_id
             )
-            OR f.user_rel_id = get_current_user_rel_id()
-            OR f.target_user_rel_id = get_current_user_rel_id()
-        THEN f.followed_at
-        ELSE NULL
-    END as followed_at
-FROM users_lines_followings f
-LEFT JOIN users_master u1 ON f.user_rel_id = u1.rel_id
-LEFT JOIN users_line_privacy po1 ON f.user_rel_id = po1.user_rel_id
-LEFT JOIN users_line_privacy po2 ON f.target_user_rel_id = po2.user_rel_id;
+        ELSE '[]'::json
+    END AS intents,
 
-
-
-CREATE VIEW view_users_lines_belonging_dm_groups AS
-SELECT
-    dgm.user_rel_id,
-    u.pub_id as user_pub_id,
-    u.anon_pub_id as user_anon_pub_id,
-
-    check_relationship_access(u.rel_id, po.belonging_dm_groups) as privacy_allowed,
-
+    -- intent_bodyparts配列（サブクエリで取得）
     CASE
-        WHEN check_relationship_access(u.rel_id, po.belonging_dm_groups) THEN
-            CASE WHEN dg.is_hidden = FALSE THEN dg.rel_id ELSE NULL END
+        WHEN check_relationship_access(um.rel_id, po.intent_bodyparts) THEN
+            (
+                SELECT COALESCE(
+                    json_agg(
+                        json_build_object(
+                            'pub_id', bm.pub_id,
+                            'bodypart', bm.bodypart
+                        )
+                    ),
+                    '[]'::json
+                )
+                FROM users_lines_intent_bodyparts ulibp
+                JOIN bodyparts_master bm ON ulibp.bodypart_rel_id = bm.rel_id
+                WHERE ulibp.user_rel_id = um.rel_id
+            )
+        ELSE '[]'::json
+    END AS intent_bodyparts,
+
+    -- belonging_gyms配列（サブクエリで取得）
+    CASE
+        WHEN check_relationship_access(um.rel_id, po.belonging_gyms) THEN
+            (
+                SELECT COALESCE(
+                    json_agg(
+                        json_build_object(
+                            'pub_id', gm.pub_id,
+                            'name', gm.name,
+                            'gymchain', CASE
+                                WHEN gcm.pub_id IS NOT NULL THEN
+                                    json_build_object(
+                                        'pub_id', gcm.pub_id,
+                                        'name', gcm.name,
+                                        'icon', gcm.icon_rel_id,
+                                        'internal_id', gm.gymchain_internal_id
+                                    )
+                                ELSE NULL
+                            END,
+                            'photo', gm.photo_rel_id,
+                            'joined_since', ulbg.joined_at
+                        )
+                    ),
+                    '[]'::json
+                )
+                FROM users_lines_belonging_gyms ulbg
+                JOIN gyms_master gm ON ulbg.gym_rel_id = gm.rel_id
+                LEFT JOIN gymchains_master gcm ON gm.gymchain_rel_id = gcm.rel_id
+                WHERE ulbg.user_rel_id = um.rel_id
+            )
+        ELSE '[]'::json
+    END AS belonging_gyms,
+
+    -- フォロー数（サブクエリで取得）
+    CASE
+        WHEN check_relationship_access(um.rel_id, po.followings_count) THEN
+            (
+                SELECT COUNT(*)
+                FROM users_lines_followings ulf
+                WHERE ulf.user_rel_id = um.rel_id
+            )
         ELSE NULL
-    END as dm_group_rel_id
-FROM dm_groups_lines_members dgm
-LEFT JOIN users_master u ON dgm.user_rel_id = u.rel_id
-LEFT JOIN users_line_privacy po ON u.rel_id = po.user_rel_id
-LEFT JOIN dm_groups_master dg ON dgm.dm_group_rel_id = dg.rel_id;
+    END AS followings_count,
+
+    -- フォロワー数（サブクエリで取得）
+    CASE
+        WHEN check_relationship_access(um.rel_id, po.followers_count) THEN
+            (
+                SELECT COUNT(*)
+                FROM users_lines_followings ulf
+                WHERE ulf.target_user_rel_id = um.rel_id
+            )
+        ELSE NULL
+    END AS followers_count,
+
+    -- 投稿数（サブクエリで取得）
+    CASE
+        WHEN check_relationship_access(um.rel_id, po.posts_count) THEN
+            (
+                SELECT COUNT(*)
+                FROM posts_master pm
+                WHERE pm.posted_user_rel_id = um.rel_id
+            )
+        ELSE NULL
+    END AS posts_count
+
+FROM users_master um
+LEFT JOIN users_line_profile ulp ON um.rel_id = ulp.user_rel_id
+LEFT JOIN users_line_privacy po ON um.rel_id = po.user_rel_id
+LEFT JOIN users_lines_tags ult ON um.rel_id = ult.user_rel_id
+LEFT JOIN tags_master tm ON ult.tag_rel_id = tm.rel_id
+GROUP BY
+    um.rel_id,
+    um.pub_id,
+    um.handle,
+    ulp.display_name,
+    ulp.description,
+    ulp.icon_rel_id,
+    ulp.birth_date,
+    ulp.gender,
+    ulp.registered_at,
+    ulp.training_since,
+    ulp.skill_level,
+    po.display_name,
+    po.description,
+    po.tags,
+    po.icon,
+    po.birth_date,
+    po.age,
+    po.generation,
+    po.gender,
+    po.registered_since,
+    po.training_since,
+    po.skill_level,
+    po.intents,
+    po.intent_bodyparts,
+    po.belonging_gyms,
+    po.followings_count,
+    po.followers_count,
+    po.posts_count;

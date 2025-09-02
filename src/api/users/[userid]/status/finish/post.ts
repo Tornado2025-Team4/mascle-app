@@ -4,6 +4,8 @@ import { ApiErrorFatal, ApiErrorForbidden, ApiErrorNotFound } from '../../../../
 import { UserIdInfo } from '../../_cmn/userid_resolve';
 import { mustGetCtx } from '@/src/api/_cmn/get_ctx';
 
+// >! フロントから時刻指定できるように
+
 export default async function post(c: Context) {
     const spCl = mustGetCtx<SupabaseClient>(c, 'supabaseClientSess');
     const userIdInfo = mustGetCtx<UserIdInfo>(c, 'userIdInfo');

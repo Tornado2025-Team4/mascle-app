@@ -21,6 +21,14 @@ CREATE TRIGGER trg_users_lines_belonging_gyms_updated_at BEFORE UPDATE ON users_
 CREATE TRIGGER trg_users_lines_intents_updated_at BEFORE UPDATE ON users_lines_intents FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER trg_users_lines_intent_bodyparts_updated_at BEFORE UPDATE ON users_lines_intent_bodyparts FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER trg_status_master_updated_at BEFORE UPDATE ON status_master FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER trg_status_lines_partners_updated_at BEFORE UPDATE ON status_lines_partners FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER trg_menus_master_updated_at BEFORE UPDATE ON menus_master FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER trg_menus_cardio_master_updated_at BEFORE UPDATE ON menus_cardio_master FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER trg_status_lines_menus_updated_at BEFORE UPDATE ON status_lines_menus FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER trg_status_lines_menus_cardio_updated_at BEFORE UPDATE ON status_lines_menus_cardio FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER trg_status_lines_menus_sets_updated_at BEFORE UPDATE ON status_lines_menus_sets FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER trg_status_lines_menus_cardio_details_updated_at BEFORE UPDATE ON status_lines_menus_cardio_details FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
 
 -- User config tables
 CREATE TRIGGER trg_users_line_config_updated_at BEFORE UPDATE ON users_line_config FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
@@ -42,13 +50,12 @@ CREATE TRIGGER trg_comments_lines_mentions_updated_at BEFORE UPDATE ON comments_
 
 -- Notices tables
 CREATE TRIGGER trg_notices_master_updated_at BEFORE UPDATE ON notices_master FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER trg_notices_lines_mentions_updated_at BEFORE UPDATE ON notices_lines_mentions FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER trg_notices_lines_assigned_users_updated_at BEFORE UPDATE ON notices_lines_assigned_users FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- DM pair tables
 CREATE TRIGGER trg_dm_pairs_master_updated_at BEFORE UPDATE ON dm_pairs_master FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER trg_dm_pair_messages_master_updated_at BEFORE UPDATE ON dm_pair_messages_master FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER trg_dm_pair_messages_lines_mentions_updated_at BEFORE UPDATE ON dm_pair_messages_lines_mentions FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER trg_dm_pair_messages_line_reply_updated_at BEFORE UPDATE ON dm_pair_messages_line_reply FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- DM group tables
 CREATE TRIGGER trg_dm_groups_master_updated_at BEFORE UPDATE ON dm_groups_master FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();

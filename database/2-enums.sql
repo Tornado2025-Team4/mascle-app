@@ -11,6 +11,7 @@ CREATE TYPE notice_kind AS ENUM (
     'social/follower-added',
     'social/following-posted',
     'social/following-started-training',
+    'social/training-partner-request',
     'post/liked',
     'post/commented',
     'post/mentioned',

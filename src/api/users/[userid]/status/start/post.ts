@@ -10,6 +10,9 @@ interface ReqBody {
     is_auto_detected?: boolean;
 }
 
+
+// >! フロントから時刻指定できるように
+
 export default async function post(c: Context) {
     const spCl = mustGetCtx<SupabaseClient>(c, 'supabaseClientSess');
     const userIdInfo = mustGetCtx<UserIdInfo>(c, 'userIdInfo');

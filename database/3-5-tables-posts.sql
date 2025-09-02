@@ -7,7 +7,7 @@ CREATE TABLE posts_master (
     posted_user_rel_id              BIGINT          NOT NULL REFERENCES users_master(rel_id) ON DELETE CASCADE,
     posted_at                       TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
     body                            TEXT,
-    trained_gym_rel_id              BIGINT          REFERENCES gyms_master(rel_id),
+    status_rel_id                   BIGINT          REFERENCES status_master(rel_id),
 
     CONSTRAINT posts_master_posted_at_reasonable CHECK (posted_at <= NOW()),
     CONSTRAINT posts_master_body_not_empty CHECK (LENGTH(TRIM(body)) > 0)
@@ -16,7 +16,7 @@ CREATE TABLE posts_master (
 CREATE UNIQUE INDEX idx__posts_master__pub_id ON posts_master (pub_id);
 CREATE INDEX idx__posts_master__posted_user_rel_id ON posts_master (posted_user_rel_id);
 CREATE INDEX idx__posts_master__posted_at ON posts_master (posted_at);
-CREATE INDEX idx__posts_master__trained_gym_rel_id ON posts_master (trained_gym_rel_id);
+CREATE INDEX idx__posts_master__status_rel_id ON posts_master (status_rel_id);
 
 CREATE INDEX idx__posts_master__body_fts ON posts_master USING pgroonga (body);
 
@@ -71,11 +71,13 @@ CREATE TABLE posts_lines_likes (
     updated_at                      TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
 
     post_rel_id                     BIGINT          NOT NULL REFERENCES posts_master(rel_id) ON DELETE CASCADE,
-    user_rel_id                     BIGINT          NOT NULL REFERENCES users_master(rel_id) ON DELETE CASCADE
+    user_rel_id                     BIGINT          NOT NULL REFERENCES users_master(rel_id) ON DELETE CASCADE,
+    liked_at                        TIMESTAMPTZ     NOT NULL DEFAULT NOW()
 );
 
 CREATE UNIQUE INDEX idx__posts_lines_likes__post_rel_id__user_rel_id ON posts_lines_likes (post_rel_id, user_rel_id);
 CREATE INDEX idx__posts_lines_likes__user_rel_id ON posts_lines_likes (user_rel_id);
+CREATE INDEX idx__posts_lines_likes__liked_at ON posts_lines_likes (liked_at);
 
 
 CREATE TABLE comments_master (
