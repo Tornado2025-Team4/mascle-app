@@ -3,18 +3,20 @@ import ProfileSetting from './_components/profile-setting'
 import { UserData } from '@/types/userData.type';
 import Header from './_components/header';
 import Link from 'next/link';
-import { FaDumbbell, FaMedal, FaChartLine } from 'react-icons/fa';
+import { FaDumbbell, FaMedal } from 'react-icons/fa';
 import { ImTarget, ImClock, ImLocation, ImTrophy } from 'react-icons/im';
 import { calculateTrainingPeriod } from '@/lib/date';
 import Post from '../_components/post';
 
-const Profile = ({
+const Profile = async ({
   params,
 }: {
-  params: {
+  params: Promise<{
     userId: string;
-  };
+  }>;
 }) => {
+  const { userId } = await params;
+
   // 仮のユーザーデータ
   const userData: UserData = {
     uuid: "user-123",
@@ -108,7 +110,7 @@ const Profile = ({
 
           {/* ユーザー情報と統計 */}
           <div className="flex-1 flex flex-col ml-4">
-            <Link href={params.userId + "/follows"} className="flex items-center justify-center gap-8 mt-2 mb-4">
+            <Link href={userId + "/follows"} className="flex items-center justify-center gap-8 mt-2 mb-4">
 
               <div className="text-center">
                 <div className="text-xl font-bold">{userData.followers_count}</div>
@@ -193,7 +195,7 @@ const Profile = ({
         </div>
 
         {/* プロフィール編集ボタン */}
-        <ProfileSetting userId={params.userId} />
+        <ProfileSetting userId={userId} />
       </div>
 
       {/* 筋トレ記録 */}
