@@ -3,9 +3,10 @@ import ProfileSetting from './_components/profile-setting'
 import { UserData } from '@/types/userData.type';
 import Header from './_components/header';
 import Link from 'next/link';
-import { FaDumbbell, FaMedal,FaChartLine } from 'react-icons/fa';
+import { FaDumbbell, FaMedal, FaChartLine } from 'react-icons/fa';
 import { ImTarget, ImClock, ImLocation, ImTrophy } from 'react-icons/im';
 import { calculateTrainingPeriod } from '@/lib/date';
+import Post from '../_components/post';
 
 const Profile = ({
   params,
@@ -50,7 +51,41 @@ const Profile = ({
     }
   };
 
+  // 仮のユーザー投稿データ（実際はAPIから取得）
+  const userPosts = [
+    {
+      post_id: 1,
+      user_display_name: userData.display_name,
+      user_icon: userData.icon_url,
+      body: '今日は胸の日でした！ベンチプレス頑張りました！',
+      tags: ['#筋トレ', '#胸', '#ベンチプレス'],
+      gym_name: userData.belonging_gyms[0]?.name || '未設定',
+      photos: [
+        { url: "/images/photo1.jpg" },
+        { url: "/images/photo2.jpg" }
+      ],
+      posted_at: '2024-01-15',
+      like_count: 15,
+      comments_count: 3
+    },
+    {
+      post_id: 2,
+      user_display_name: userData.display_name,
+      user_icon: userData.icon_url,
+      body: '背中のトレーニング完了！デッドリフトで追い込みました。',
+      tags: ['#筋トレ', '#背中', '#デッドリフト'],
+      gym_name: userData.belonging_gyms[0]?.name || '未設定',
+      photos: [
+        { url: "/images/photo1.jpg" }
+      ],
+      posted_at: '2024-01-14',
+      like_count: 8,
+      comments_count: 1
+    }
+  ];
+
   const trainingPeriod = calculateTrainingPeriod(userData.training_since);
+
   return (
     <div className="min-h-screen px-[5vw] pb-[13vh]">
       {/* ヘッダー */}
@@ -161,20 +196,6 @@ const Profile = ({
         <ProfileSetting userId={params.userId} />
       </div>
 
-      {/* データ可視化グラフ */}
-      <div className="bg-white px-6 py-6 mt-6 rounded-2xl shadow-sm border border-gray-100">
-        <h2 className="text-lg font-bold mb-4 flex items-center gap-2 text-gray-800">
-          <FaChartLine className="text-blue-500" />
-          栄養バランス分析
-        </h2>
-        <div className="bg-gradient-to-br from-gray-50 to-blue-50 rounded-xl p-6 h-48 flex items-center justify-center border border-gray-200">
-          <div className="text-center">
-            <p className="text-gray-500 text-sm">グラフ表示エリア</p>
-            <p className="text-gray-400 text-xs mt-1">運動強度と時間の関係</p>
-          </div>
-        </div>
-      </div>
-
       {/* 筋トレ記録 */}
       <div className="bg-white px-6 py-6 mt-6 rounded-2xl shadow-sm border border-gray-100">
         <h2 className="text-lg font-bold mb-4 flex items-center gap-2 text-gray-800">
@@ -186,6 +207,31 @@ const Profile = ({
             <p className="text-gray-500 text-sm">記録表示エリア</p>
             <p className="text-gray-400 text-xs mt-1">最近のトレーニング履歴</p>
           </div>
+        </div>
+      </div>
+
+      {/* ユーザーの投稿一覧 */}
+      <div className="mt-6">
+        <h2 className="text-lg font-bold mb-4 px-[5vw] flex items-center gap-2 text-gray-800">
+          <FaDumbbell className="text-orange-500" />
+          {userData.display_name}の投稿
+        </h2>
+        <div className="flex flex-col gap-4">
+          {userPosts.map((post) => (
+            <Post
+              key={post.post_id}
+              post_id={post.post_id}
+              user_display_name={post.user_display_name}
+              user_icon={post.user_icon}
+              body={post.body}
+              tags={post.tags}
+              gym_name={post.gym_name}
+              photos={post.photos}
+              posted_at={post.posted_at}
+              like_count={post.like_count}
+              comments_count={post.comments_count}
+            />
+          ))}
         </div>
       </div>
     </div >
