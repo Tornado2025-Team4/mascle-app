@@ -9,7 +9,7 @@ CREATE TABLE dm_groups_master (
     join_request_allow              relship         NOT NULL DEFAULT 'anyone',
     join_auto_allow                 relship         NOT NULL DEFAULT 'no-one',
     name                            VARCHAR(200)    NOT NULL,
-    icon_rel_id                     UUID            REFERENCES storage.objects(id),
+    icon_rel_id                     UUID            REFERENCES storage.objects(id) ON DELETE SET NULL,
     created_by_user_rel_id          BIGINT          REFERENCES users_master(rel_id) ON DELETE SET NULL,
 
     CONSTRAINT dm_groups_name_not_empty CHECK (LENGTH(TRIM(name)) > 0),
@@ -30,7 +30,7 @@ CREATE TABLE dm_groups_lines_tags (
     updated_at                      TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
 
     dm_group_rel_id                 BIGINT          NOT NULL REFERENCES dm_groups_master(rel_id) ON DELETE CASCADE,
-    tag_rel_id                      BIGINT          NOT NULL REFERENCES tags_master(rel_id)
+    tag_rel_id                      BIGINT          NOT NULL REFERENCES tags_master(rel_id) ON DELETE CASCADE
 );
 
 CREATE UNIQUE INDEX idx__dm_groups_lines_tags__group_tag ON dm_groups_lines_tags (dm_group_rel_id, tag_rel_id);

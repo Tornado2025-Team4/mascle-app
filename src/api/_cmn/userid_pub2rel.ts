@@ -1,7 +1,7 @@
 import { SupabaseClient } from "@supabase/supabase-js";
 
-export async function userIdPub2Rel(spCl: SupabaseClient, pubId: string) {
-    const { data, error } = await spCl
+export async function userIdPub2Rel(spClService: SupabaseClient, pubId: string) {
+    const { data, error } = await spClService
         .from('users_master')
         .select('rel_id')
         .eq('pub_id', pubId)

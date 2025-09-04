@@ -6,6 +6,7 @@ import users_userId_conf from './conf';
 import users_userId_training_state from './training_state';
 import users_userId_follows from './follows';
 import users_userId_followers from './followers';
+import users_userId_status from './status';
 
 const users_userId = new Hono();
 
@@ -18,5 +19,6 @@ users_userId.route('/conf', users_userId_conf);
 users_userId.route('/training_state', users_userId_training_state);
 users_userId.route('/follows', users_userId_follows);
 users_userId.route('/followers', users_userId_followers);
+users_userId.route('/status', users_userId_status);
 
 export default users_userId;

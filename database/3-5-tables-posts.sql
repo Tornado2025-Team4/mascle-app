@@ -7,7 +7,7 @@ CREATE TABLE posts_master (
     posted_user_rel_id              BIGINT          NOT NULL REFERENCES users_master(rel_id) ON DELETE CASCADE,
     posted_at                       TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
     body                            TEXT,
-    status_rel_id                   BIGINT          REFERENCES status_master(rel_id),
+    status_rel_id                   BIGINT          REFERENCES status_master(rel_id) ON DELETE SET NULL,
 
     CONSTRAINT posts_master_posted_at_reasonable CHECK (posted_at <= NOW()),
     CONSTRAINT posts_master_body_not_empty CHECK (LENGTH(TRIM(body)) > 0)
@@ -43,7 +43,7 @@ CREATE TABLE posts_lines_tags (
     updated_at                      TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
 
     post_rel_id                     BIGINT          NOT NULL REFERENCES posts_master(rel_id) ON DELETE CASCADE,
-    tag_rel_id                      BIGINT          NOT NULL REFERENCES tags_master(rel_id)
+    tag_rel_id                      BIGINT          NOT NULL REFERENCES tags_master(rel_id) ON DELETE CASCADE
 );
 
 CREATE UNIQUE INDEX idx__posts_lines_tags__post_rel_id__tag_rel_id ON posts_lines_tags (post_rel_id, tag_rel_id);
@@ -56,8 +56,8 @@ CREATE TABLE posts_lines_photos (
     updated_at                      TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
 
     post_rel_id                     BIGINT          NOT NULL REFERENCES posts_master(rel_id) ON DELETE CASCADE,
-    photo_rel_id                    UUID            NOT NULL REFERENCES storage.objects(id),
-    photo_thumb_rel_id              UUID            REFERENCES storage.objects(id)
+    photo_rel_id                    UUID            NOT NULL REFERENCES storage.objects(id) ON DELETE CASCADE,
+    photo_thumb_rel_id              UUID            REFERENCES storage.objects(id) ON DELETE SET NULL
 );
 
 CREATE INDEX idx__posts_lines_photos__post_rel_id ON posts_lines_photos (post_rel_id);

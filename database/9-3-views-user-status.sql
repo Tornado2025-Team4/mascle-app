@@ -64,12 +64,14 @@ SELECT
                                 json_build_object(
                                     'pub_id', gcm.pub_id,
                                     'name', gcm.name,
-                                    'icon', gcm.icon_rel_id,
+                                    'icon_rel_id', gcm.icon_rel_id,
+                                    'icon_name', gso.name,
                                     'internal_id', gm.gymchain_internal_id
                                 )
                             ELSE NULL
                         END,
-                        'photo', gm.photo_rel_id
+                        'photo_rel_id', gm.photo_rel_id,
+                        'photo_name', gpso.name
                     )
                 ELSE NULL
             END
@@ -109,8 +111,12 @@ SELECT
                                 )
                                 ELSE '[]'::json
                             END,
-                            'icon', CASE
+                            'icon_rel_id', CASE
                                 WHEN check_relationship_access(partner_um.rel_id, partner_po.icon) THEN partner_ulp.icon_rel_id
+                                ELSE NULL
+                            END,
+                            'icon_name', CASE
+                                WHEN check_relationship_access(partner_um.rel_id, partner_po.icon) THEN pso.name
                                 ELSE NULL
                             END,
                             'skill_level', CASE
@@ -141,6 +147,7 @@ SELECT
                 JOIN users_master partner_um ON slp.partner_user_rel_id = partner_um.rel_id
                 LEFT JOIN users_line_profile partner_ulp ON partner_um.rel_id = partner_ulp.user_rel_id
                 LEFT JOIN users_line_privacy partner_po ON partner_um.rel_id = partner_po.user_rel_id
+                LEFT JOIN storage.objects pso ON partner_ulp.icon_rel_id = pso.id
                 WHERE slp.status_rel_id = sm.rel_id
             )
         ELSE '[]'::json
@@ -150,4 +157,6 @@ FROM status_master sm
 JOIN users_master um ON sm.user_rel_id = um.rel_id
 LEFT JOIN users_line_privacy po ON um.rel_id = po.user_rel_id
 LEFT JOIN gyms_master gm ON sm.gym_rel_id = gm.rel_id
-LEFT JOIN gymchains_master gcm ON gm.gymchain_rel_id = gcm.rel_id;
+LEFT JOIN gymchains_master gcm ON gm.gymchain_rel_id = gcm.rel_id
+LEFT JOIN storage.objects gso ON gcm.icon_rel_id = gso.id
+LEFT JOIN storage.objects gpso ON gm.photo_rel_id = gpso.id;

@@ -1,15 +1,15 @@
 import { Context } from 'hono';
-import { ApiErrorFatal } from '../../../_cmn/error';
+import { ApiErrorBadRequest, ApiErrorFatal } from '../../../_cmn/error';
 import { mustGetCtx } from '../../../_cmn/get_ctx';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { UserIdInfo } from './../_cmn/userid_resolve';
 import { userIdPub2Rel } from '@/src/api/_cmn/userid_pub2rel';
+import { isValidISODate } from '@/src/api/_cmn/conv_date_for_fe';
 
 interface reqBody {
-    icon?: boolean;
-    handle?: string;
     display_name?: string;
     description?: string;
+    icon?: string; // Base64文字列
     birth_date?: string;
     gender?: string;
     training_since?: string;
@@ -21,7 +21,6 @@ interface reqBody {
 
 interface respBody {
     success: boolean;
-    icon_upload_url?: string;
 }
 
 export default async function patch(c: Context) {
@@ -32,83 +31,103 @@ export default async function patch(c: Context) {
 
     const relId = await userIdPub2Rel(spClSess, userIdInfo.pubId);
 
-    let iconUploadUrl: string | undefined = undefined;
-
-    if (body.icon === true) {
-        try {
-            const fileName = `${crypto.randomUUID()}.jpg`;
-            const { data: uploadData, error: uploadError } = await spClSess.storage
-                .from('users_icons')
-                .createSignedUploadUrl(fileName);
-
-            if (uploadError) {
-                throw new ApiErrorFatal(`Failed to create upload URL: ${uploadError.message}`);
-            }
-
-            iconUploadUrl = uploadData?.signedUrl;
-        } catch (e) {
-            throw new ApiErrorFatal(`Failed to create icon upload URL: ${e}`);
-        }
-    }
-
-    if (body.handle !== undefined || body.display_name !== undefined || body.description !== undefined ||
-        body.birth_date !== undefined || body.gender !== undefined || body.training_since !== undefined) {
+    if (body.display_name !== undefined || body.description !== undefined ||
+        body.birth_date !== undefined || body.gender !== undefined ||
+        body.training_since !== undefined) {
 
         const updateData: Record<string, string> = {};
 
-        if (body.handle !== undefined) updateData.handle = body.handle;
         if (body.display_name !== undefined) updateData.display_name = body.display_name;
         if (body.description !== undefined) updateData.description = body.description;
         if (body.birth_date !== undefined) updateData.birth_date = body.birth_date;
         if (body.gender !== undefined) updateData.gender = body.gender;
         if (body.training_since !== undefined) updateData.training_since = body.training_since;
 
-        // まずhandleの更新が必要かチェック
-        if (updateData.handle) {
-            const { error: handleUpdateError } = await spClSess
-                .from('users_master')
-                .update({ handle: updateData.handle })
-                .eq('rel_id', relId);
-
-            if (handleUpdateError) {
-                throw new ApiErrorFatal(`Failed to update handle: ${handleUpdateError.message}`);
-            }
-            delete updateData.handle; // handleはusers_masterで処理済み
+        if (100 < updateData.display_name.length) {
+            throw new ApiErrorBadRequest("Display name too long");
         }
 
-        // users_line_profileの更新（存在しない場合は作成）
+        if (!isValidISODate(updateData.birth_date)) {
+            throw new ApiErrorBadRequest("Invalid birth date");
+        }
+
+        if (!['male',
+            'female',
+            'other',
+            'prefer_not_to_say'].includes(updateData.gender)) {
+            throw new ApiErrorBadRequest("Invalid gender");
+        }
+
+        if (!isValidISODate(updateData.training_since)) {
+            throw new ApiErrorBadRequest("Invalid training since date");
+        }
+
         if (Object.keys(updateData).length > 0) {
-            // まず既存レコードの確認
-            const { data: existingProfile } = await spClSess
+            const { error: updateError } = await spClSess
                 .from('users_line_profile')
-                .select('rel_id')
-                .eq('user_rel_id', relId)
-                .single();
+                .update(updateData)
+                .eq('user_rel_id', relId);
 
-            if (existingProfile) {
-                // 既存レコードを更新
-                const { error: updateError } = await spClSess
-                    .from('users_line_profile')
-                    .update(updateData)
-                    .eq('user_rel_id', relId);
-
-                if (updateError) {
-                    throw new ApiErrorFatal(`Failed to update user profile: ${updateError.message}`);
-                }
-            } else {
-                const insertData = {
-                    user_rel_id: relId,
-                    ...updateData
-                };
-
-                const { error: insertError } = await spClSess
-                    .from('users_line_profile')
-                    .insert(insertData);
-
-                if (insertError) {
-                    throw new ApiErrorFatal(`Failed to create user profile: ${insertError.message}`);
-                }
+            if (updateError) {
+                throw new ApiErrorFatal(`Failed to update user profile: ${updateError.message}`);
             }
+        }
+    }
+
+    if (body.icon && typeof body.icon === 'string') {
+        const base64Data = body.icon.replace(/^data:image\/[a-zA-Z]+;base64,/, '');
+        const buffer = Buffer.from(base64Data, 'base64');
+
+        if (buffer.length > 5 * 1024 * 1024) { // 5MB制限
+            throw new ApiErrorBadRequest("Icon file too large");
+        }
+
+        const { data: currentProfile, error: profileError } = await spClSess
+            .from('users_line_profile')
+            .select('icon_rel_id')
+            .eq('user_rel_id', relId)
+            .single();
+
+        if (profileError) {
+            throw new ApiErrorFatal(`Failed to get current profile: ${profileError.message}`);
+        }
+
+        if (currentProfile?.icon_rel_id) {
+            const { error: deleteError } = await spClSess.storage
+                .from('users_icons')
+                .remove([currentProfile.icon_rel_id]);
+
+            if (deleteError) {
+                console.warn(`Failed to delete existing icon: ${deleteError.message}`);
+                // 削除エラーは致命的ではないので続行
+            }
+        }
+
+        const fileName = `${crypto.randomUUID()}.jpg`;
+
+        const { data: uploadData, error: uploadError } = await spClSess.storage
+            .from('users_icons')
+            .upload(fileName, buffer, {
+                contentType: 'image/jpeg',
+                upsert: false
+            });
+
+        if (uploadError) {
+            throw new ApiErrorFatal(`Failed to upload icon: ${uploadError.message}`);
+        }
+
+        const fileId = uploadData?.id;
+        if (!fileId) {
+            throw new ApiErrorFatal('Failed to get uploaded file ID');
+        }
+
+        const { error: updateIconError } = await spClSess
+            .from('users_line_profile')
+            .update({ icon_rel_id: fileId })
+            .eq('user_rel_id', relId);
+
+        if (updateIconError) {
+            throw new ApiErrorFatal(`Failed to update icon in profile: ${updateIconError.message}`);
         }
     }
 
@@ -265,8 +284,7 @@ export default async function patch(c: Context) {
     }
 
     const response: respBody = {
-        success: true,
-        ...(iconUploadUrl && { icon_upload_url: iconUploadUrl })
+        success: true
     };
 
     return c.json(response);

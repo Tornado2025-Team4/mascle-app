@@ -3,7 +3,7 @@ CREATE TABLE users_master (
     created_at                      TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
     updated_at                      TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
 
-    pub_id                          UUID            NOT NULL UNIQUE REFERENCES auth.users,
+    pub_id                          UUID            NOT NULL UNIQUE REFERENCES auth.users ON DELETE CASCADE,
     anon_pub_id                     CHAR(22)        NOT NULL UNIQUE,
     handle                          VARCHAR(31)     NOT NULL UNIQUE,
 
@@ -69,7 +69,7 @@ CREATE TABLE gymchains_master (
 
     pub_id                          CHAR(21)        NOT NULL UNIQUE,
     name                            VARCHAR(200)    NOT NULL,
-    icon_rel_id                     UUID            REFERENCES storage.objects(id),
+    icon_rel_id                     UUID            REFERENCES storage.objects(id) ON DELETE SET NULL,
 
     CONSTRAINT gymchains_master_name_not_empty CHECK (LENGTH(TRIM(name)) > 0)
 );
@@ -86,10 +86,10 @@ CREATE TABLE gyms_master (
 
     pub_id                          CHAR(21)        NOT NULL UNIQUE,
     name                            VARCHAR(200)    NOT NULL,
-    gymchain_rel_id                 BIGINT          REFERENCES gymchains_master(rel_id),
+    gymchain_rel_id                 BIGINT          REFERENCES gymchains_master(rel_id) ON DELETE CASCADE,
     gymchain_internal_id            JSONB,
     location                        GEOGRAPHY(POINT, 4326),
-    photo_rel_id                    UUID            REFERENCES storage.objects(id),
+    photo_rel_id                    UUID            REFERENCES storage.objects(id) ON DELETE SET NULL,
 
     CONSTRAINT gyms_master_name_not_empty CHECK (LENGTH(TRIM(name)) > 0)
 );

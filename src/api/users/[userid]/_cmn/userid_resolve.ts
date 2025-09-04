@@ -8,9 +8,7 @@ import { Context, MiddlewareHandler } from "hono";
 export interface UserIdInfo {
     pubId: string;
     anonPubId?: string;
-    verifyOk: boolean;
     specByAnon: boolean;
-    isSelf?: boolean;
 }
 
 export const resolveUserId = async (
@@ -25,13 +23,11 @@ export const resolveUserId = async (
         return {
             pubId: userAuthnInfo.obj.id,
             anonPubId: undefined,
-            verifyOk: true,
-            specByAnon: false,
-            isSelf: true
+            specByAnon: false
         };
     } else if (specUserId.startsWith('@')) {
-        const spClAnon = mustGetCtx<SupabaseClient>(c, 'supabaseClientAnon');
-        const { data, error } = await spClAnon
+        const spClService = mustGetCtx<SupabaseClient>(c, 'supabaseClientService');
+        const { data, error } = await spClService
             .from('users_master')
             .select('pub_id')
             .eq('handle', specUserId)
@@ -42,13 +38,11 @@ export const resolveUserId = async (
         return {
             pubId: data.pub_id,
             anonPubId: undefined,
-            verifyOk: true,
-            specByAnon: false,
-            isSelf: undefined
+            specByAnon: false
         };
     } else if (specUserId.startsWith('~')) {
-        const spClAnon = mustGetCtx<SupabaseClient>(c, 'supabaseClientAnon');
-        const { data, error } = await spClAnon
+        const spClService = mustGetCtx<SupabaseClient>(c, 'supabaseClientService');
+        const { data, error } = await spClService
             .from('users_master')
             .select('pub_id')
             .eq('anon_pub_id', specUserId)
@@ -59,17 +53,22 @@ export const resolveUserId = async (
         return {
             pubId: data.pub_id,
             anonPubId: specUserId,
-            verifyOk: true,
-            specByAnon: true,
-            isSelf: undefined
+            specByAnon: true
         };
     } else {
+        const spClService = mustGetCtx<SupabaseClient>(c, 'supabaseClientService');
+        const { data, error } = await spClService
+            .from('users_master')
+            .select('pub_id')
+            .eq('pub_id', specUserId)
+            .single();
+        if (error || !data) {
+            throw new ApiErrorNotFound("User");
+        }
         return {
-            pubId: specUserId,
+            pubId: data.pub_id,
             anonPubId: undefined,
-            verifyOk: false,
-            specByAnon: false,
-            isSelf: undefined
+            specByAnon: false
         };
     }
 }

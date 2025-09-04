@@ -47,7 +47,12 @@ SELECT
     CASE
         WHEN po.completely_hidden = false AND check_relationship_access(um.rel_id, po.icon) THEN ulp.icon_rel_id
         ELSE NULL
-    END AS icon,
+    END AS icon_rel_id,
+
+    CASE
+        WHEN po.completely_hidden = false AND check_relationship_access(um.rel_id, po.icon) THEN so.name
+        ELSE NULL
+    END AS icon_name,
 
     CASE
         WHEN po.completely_hidden = false AND check_relationship_access(um.rel_id, po.birth_date) THEN ulp.birth_date
@@ -161,12 +166,14 @@ LEFT JOIN users_line_profile ulp ON um.rel_id = ulp.user_rel_id
 LEFT JOIN users_line_privacy_anon po ON um.rel_id = po.user_rel_id
 LEFT JOIN users_lines_tags ult ON um.rel_id = ult.user_rel_id
 LEFT JOIN tags_master tm ON ult.tag_rel_id = tm.rel_id
+LEFT JOIN storage.objects so ON ulp.icon_rel_id = so.id
 GROUP BY
     um.rel_id,
     um.anon_pub_id,
     ulp.display_name,
     ulp.description,
     ulp.icon_rel_id,
+    so.name,
     ulp.birth_date,
     ulp.gender,
     ulp.registered_at,

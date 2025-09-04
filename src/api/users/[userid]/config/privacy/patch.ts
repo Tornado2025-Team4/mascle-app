@@ -4,42 +4,60 @@ import { mustGetCtx } from '../../../../_cmn/get_ctx';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { UserIdInfo } from '../../_cmn/userid_resolve';
 import { userIdPub2Rel } from '@/src/api/_cmn/userid_pub2rel';
-import { relship } from '@/src/api/_cmn/enum_relship';
+import { z } from 'zod';
 
+const relshipEnum = [
+    'anyone',
+    'followers',
+    'following',
+    'follow-followers',
+    'no-one',
+] as const;
 
-interface reqBody {
-    display_name?: relship;
-    description?: relship;
-    tags?: relship;
-    icon?: relship;
-    birth_date?: relship;
-    age?: relship;
-    generation?: relship;
-    gender?: relship;
-    registered_since?: relship;
-    training_since?: relship;
-    skill_level?: relship;
-    intents?: relship;
-    intent_bodyparts?: relship;
-    belonging_gyms?: relship;
-    status?: relship;
-    status_location?: relship;
-    status_histories?: relship;
-    followings?: relship;
-    followings_count?: relship;
-    followers?: relship;
-    followers_count?: relship;
-    posts?: relship;
-    posts_location?: relship;
-    posts_count?: relship;
-    belonging_dm_groups?: relship;
-}
+const privacySchema = z.object({
+    display_name: z.enum(relshipEnum).optional(),
+    description: z.enum(relshipEnum).optional(),
+    tags: z.enum(relshipEnum).optional(),
+    icon: z.enum(relshipEnum).optional(),
+    birth_date: z.enum(relshipEnum).optional(),
+    age: z.enum(relshipEnum).optional(),
+    generation: z.enum(relshipEnum).optional(),
+    gender: z.enum(relshipEnum).optional(),
+    registered_since: z.enum(relshipEnum).optional(),
+    training_since: z.enum(relshipEnum).optional(),
+    skill_level: z.enum(relshipEnum).optional(),
+    intents: z.enum(relshipEnum).optional(),
+    intent_bodyparts: z.enum(relshipEnum).optional(),
+    belonging_gyms: z.enum(relshipEnum).optional(),
+    status: z.enum(relshipEnum).optional(),
+    status_location: z.enum(relshipEnum).optional(),
+    status_menus: z.enum(relshipEnum).optional(),
+    status_histories: z.enum(relshipEnum).optional(),
+    followings: z.enum(relshipEnum).optional(),
+    followings_count: z.enum(relshipEnum).optional(),
+    followers: z.enum(relshipEnum).optional(),
+    followers_count: z.enum(relshipEnum).optional(),
+    posts: z.enum(relshipEnum).optional(),
+    posts_location: z.enum(relshipEnum).optional(),
+    posts_count: z.enum(relshipEnum).optional(),
+}).strict();
 
 export default async function patch(c: Context) {
     const spClSess = mustGetCtx<SupabaseClient>(c, 'supabaseClientSess');
     const userIdInfo = mustGetCtx<UserIdInfo>(c, 'userIdInfo');
 
-    const body: reqBody = await c.req.json();
+    let body: unknown;
+    try {
+        body = await c.req.json();
+    } catch {
+        return c.json({ success: false, error: 'Invalid JSON' }, 400);
+    }
+
+    const parseResult = privacySchema.safeParse(body);
+    if (!parseResult.success) {
+        return c.json({ success: false, error: parseResult.error.flatten() }, 400);
+    }
+    const updateData = parseResult.data;
 
     const relId = await userIdPub2Rel(spClSess, userIdInfo.pubId);
 
@@ -52,14 +70,6 @@ export default async function patch(c: Context) {
     if (fetchError) {
         throw new ApiErrorFatal('Failed to get user privacy settings');
     }
-
-    const updateData: Partial<reqBody> = {};
-
-    Object.keys(body).forEach((key) => {
-        if (body[key as keyof reqBody] !== undefined) {
-            updateData[key as keyof reqBody] = body[key as keyof reqBody];
-        }
-    });
 
     if (!existingData || existingData.length === 0) {
         const insertData = { user_rel_id: relId, ...updateData };

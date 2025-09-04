@@ -5,18 +5,19 @@ import { SupabaseClient } from '@supabase/supabase-js';
 import { UserIdInfo } from './_cmn/userid_resolve';
 
 export default async function get(c: Context) {
-    const spClAnon = mustGetCtx<SupabaseClient>(c, 'supabaseClientAnon');
-
     const userIdInfo = mustGetCtx<UserIdInfo>(c, 'userIdInfo');
     if (userIdInfo.specByAnon) {
-        throw new ApiErrorForbidden("User info access", "Cannot get ids by anon id");
+        throw new ApiErrorForbidden("User IDs", "Cannot get IDs by anon id");
     }
-    const { data, error } = await spClAnon
+
+    const spClService = mustGetCtx<SupabaseClient>(c, 'supabaseClientService');
+
+    const { data, error } = await spClService
         .from('users_master')
         .select('pub_id, anon_pub_id, handle')
         .eq('pub_id', userIdInfo.pubId)
         .single();
-    if (error) {
+    if (error && error.code != 'PGRST116') {
         throw new ApiErrorFatal(`DB access error ${error.message}`);
     }
     if (!data) {
@@ -26,5 +27,5 @@ export default async function get(c: Context) {
         pub_id: data.pub_id,
         anon_pub_id: data.anon_pub_id,
         handle: data.handle
-    })
+    });
 }

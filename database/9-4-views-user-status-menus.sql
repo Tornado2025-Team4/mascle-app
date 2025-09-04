@@ -15,7 +15,14 @@ SELECT
                         'menu', json_build_object(
                             'pub_id', mm.pub_id,
                             'name', mm.name,
-                            'bodypart', bm.bodypart
+                            'bodypart', CASE
+                                WHEN bm.pub_id IS NOT NULL THEN
+                                    json_build_object(
+                                        'pub_id', bm.pub_id,
+                                        'name', bm.bodypart
+                                    )
+                                ELSE NULL
+                            END
                         ),
                         'sets', (
                             SELECT COALESCE(

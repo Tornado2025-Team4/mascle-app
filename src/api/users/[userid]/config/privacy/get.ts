@@ -23,6 +23,7 @@ interface respBody {
     belonging_gyms?: relship;
     status?: relship;
     status_location?: relship;
+    status_menus?: relship;
     status_histories?: relship;
     followings?: relship;
     followings_count?: relship;
@@ -31,7 +32,6 @@ interface respBody {
     posts?: relship;
     posts_location?: relship;
     posts_count?: relship;
-    belonging_dm_groups?: relship;
 }
 
 type PrivacyRow = {
@@ -51,6 +51,7 @@ type PrivacyRow = {
     belonging_gyms?: relship;
     status?: relship;
     status_location?: relship;
+    status_menus?: relship;
     status_histories?: relship;
     followings?: relship;
     followings_count?: relship;
@@ -59,7 +60,6 @@ type PrivacyRow = {
     posts?: relship;
     posts_location?: relship;
     posts_count?: relship;
-    belonging_dm_groups?: relship;
 };
 
 export default async function get(c: Context) {
@@ -120,6 +120,7 @@ export default async function get(c: Context) {
         belonging_gyms: mapped.belonging_gyms,
         status: mapped.status,
         status_location: mapped.status_location,
+        status_menus: mapped.status_menus,
         status_histories: mapped.status_histories,
         followings: mapped.followings,
         followings_count: mapped.followings_count,
@@ -128,7 +129,6 @@ export default async function get(c: Context) {
         posts: mapped.posts,
         posts_location: mapped.posts_location,
         posts_count: mapped.posts_count,
-        belonging_dm_groups: mapped.belonging_dm_groups,
     } : {};
 
     return c.json(response);

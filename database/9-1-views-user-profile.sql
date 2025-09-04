@@ -50,7 +50,12 @@ SELECT
     CASE
         WHEN check_relationship_access(um.rel_id, po.icon) THEN ulp.icon_rel_id
         ELSE NULL
-    END AS icon,
+    END AS icon_rel_id,
+
+    CASE
+        WHEN check_relationship_access(um.rel_id, po.icon) THEN so.name
+        ELSE NULL
+    END AS icon_name,
 
     CASE
         WHEN check_relationship_access(um.rel_id, po.birth_date) THEN ulp.birth_date
@@ -151,12 +156,14 @@ SELECT
                                     json_build_object(
                                         'pub_id', gcm.pub_id,
                                         'name', gcm.name,
-                                        'icon', gcm.icon_rel_id,
+                                        'icon_rel_id', gcm.icon_rel_id,
+                                        'icon_name', gso.name,
                                         'internal_id', gm.gymchain_internal_id
                                     )
                                 ELSE NULL
                             END,
-                            'photo', gm.photo_rel_id,
+                            'photo_rel_id', gm.photo_rel_id,
+                            'photo_name', gpso.name,
                             'joined_since', ulbg.joined_at
                         )
                     ),
@@ -165,6 +172,8 @@ SELECT
                 FROM users_lines_belonging_gyms ulbg
                 JOIN gyms_master gm ON ulbg.gym_rel_id = gm.rel_id
                 LEFT JOIN gymchains_master gcm ON gm.gymchain_rel_id = gcm.rel_id
+                LEFT JOIN storage.objects gso ON gcm.icon_rel_id = gso.id
+                LEFT JOIN storage.objects gpso ON gm.photo_rel_id = gpso.id
                 WHERE ulbg.user_rel_id = um.rel_id
             )
         ELSE '[]'::json
@@ -208,6 +217,7 @@ LEFT JOIN users_line_profile ulp ON um.rel_id = ulp.user_rel_id
 LEFT JOIN users_line_privacy po ON um.rel_id = po.user_rel_id
 LEFT JOIN users_lines_tags ult ON um.rel_id = ult.user_rel_id
 LEFT JOIN tags_master tm ON ult.tag_rel_id = tm.rel_id
+LEFT JOIN storage.objects so ON ulp.icon_rel_id = so.id
 GROUP BY
     um.rel_id,
     um.pub_id,
@@ -215,6 +225,7 @@ GROUP BY
     ulp.display_name,
     ulp.description,
     ulp.icon_rel_id,
+    so.name,
     ulp.birth_date,
     ulp.gender,
     ulp.registered_at,

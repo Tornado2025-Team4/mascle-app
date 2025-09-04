@@ -7,8 +7,9 @@ import { userIdPub2Rel } from '@/src/api/_cmn/userid_pub2rel';
 import { relship } from '@/src/api/_cmn/enum_relship';
 
 interface respBody {
-    no_hideall_on_offline?: boolean;
-    handle_id?: relship;
+    completely_hidden?: boolean;
+    view_real_profile?: relship;
+
     display_name?: relship;
     description?: relship;
     tags?: relship;
@@ -22,18 +23,15 @@ interface respBody {
     skill_level?: relship;
     intents?: relship;
     intent_bodyparts?: relship;
-    status?: relship;
-    status_location?: relship;
     followings?: relship;
     followings_count?: relship;
     followers?: relship;
     followers_count?: relship;
-    posts_count?: relship;
 }
 
 type PrivacyRow = {
-    no_hideall_on_offline?: boolean;
-    handle_id?: relship;
+    completely_hidden?: boolean;
+    view_real_profile?: relship;
     display_name?: relship;
     description?: relship;
     tags?: relship;
@@ -47,13 +45,10 @@ type PrivacyRow = {
     skill_level?: relship;
     intents?: relship;
     intent_bodyparts?: relship;
-    status?: relship;
-    status_location?: relship;
     followings?: relship;
     followings_count?: relship;
     followers?: relship;
     followers_count?: relship;
-    posts_count?: relship;
 };
 
 export default async function get(c: Context) {
@@ -98,8 +93,8 @@ export default async function get(c: Context) {
 
     const mapped = res && Array.isArray(res) ? res[0] : res;
     const response: respBody = mapped ? {
-        no_hideall_on_offline: mapped.no_hideall_on_offline,
-        handle_id: mapped.handle_id,
+        completely_hidden: mapped.completely_hidden,
+        view_real_profile: mapped.view_real_profile,
         display_name: mapped.display_name,
         description: mapped.description,
         tags: mapped.tags,
@@ -113,13 +108,10 @@ export default async function get(c: Context) {
         skill_level: mapped.skill_level,
         intents: mapped.intents,
         intent_bodyparts: mapped.intent_bodyparts,
-        status: mapped.status,
-        status_location: mapped.status_location,
         followings: mapped.followings,
         followings_count: mapped.followings_count,
         followers: mapped.followers,
         followers_count: mapped.followers_count,
-        posts_count: mapped.posts_count,
     } : {};
 
     return c.json(response);

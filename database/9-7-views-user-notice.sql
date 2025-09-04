@@ -94,7 +94,7 @@ SELECT
                             ELSE '[]'::json
                         END
                 END,
-                'icon', CASE
+                'icon_rel_id', CASE
                     WHEN nm.should_be_anon THEN
                         CASE
                             WHEN igniter_po_anon.completely_hidden = false
@@ -106,6 +106,21 @@ SELECT
                         CASE
                             WHEN check_relationship_access(igniter_um.rel_id, igniter_po.icon)
                             THEN igniter_ulp.icon_rel_id
+                            ELSE NULL
+                        END
+                END,
+                'icon_name', CASE
+                    WHEN nm.should_be_anon THEN
+                        CASE
+                            WHEN igniter_po_anon.completely_hidden = false
+                                AND check_relationship_access(igniter_um.rel_id, igniter_po_anon.icon)
+                            THEN iso.name
+                            ELSE NULL
+                        END
+                    ELSE
+                        CASE
+                            WHEN check_relationship_access(igniter_um.rel_id, igniter_po.icon)
+                            THEN iso.name
                             ELSE NULL
                         END
                 END,
@@ -180,4 +195,5 @@ JOIN users_master target_um ON nlau.target_user_rel_id = target_um.rel_id
 LEFT JOIN users_master igniter_um ON nm.igniter_user_rel_id = igniter_um.rel_id
 LEFT JOIN users_line_profile igniter_ulp ON igniter_um.rel_id = igniter_ulp.user_rel_id
 LEFT JOIN users_line_privacy igniter_po ON igniter_um.rel_id = igniter_po.user_rel_id
-LEFT JOIN users_line_privacy_anon igniter_po_anon ON igniter_um.rel_id = igniter_po_anon.user_rel_id;
+LEFT JOIN users_line_privacy_anon igniter_po_anon ON igniter_um.rel_id = igniter_po_anon.user_rel_id
+LEFT JOIN storage.objects iso ON igniter_ulp.icon_rel_id = iso.id;

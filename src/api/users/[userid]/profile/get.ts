@@ -4,6 +4,7 @@ import { mustGetCtx } from '../../../_cmn/get_ctx';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { UserIdInfo } from './../_cmn/userid_resolve';
 import { mustGetSpClSessOrAnon } from '@/src/api/_cmn/get_supaclient';
+import { convDateForFE, convDurationForFE, precision } from '@/src/api/_cmn/conv_date_for_fe';
 
 interface respBody {
     pub_id?: string
@@ -16,234 +17,200 @@ interface respBody {
     age?: number
     generation?: number
     gender?: string
-    registerd_since?: string
+    registered_since?: string
     training_since?: string
     skill_level?: string
-    tags?: string[]
-    intents?: string[]
-    intent_bodyparts?: string[]
-    belonging_gyms?: string[]
-    status?: {
-        started_at?: string
-        finished_at?: string
-        is_auto_detected?: boolean
-        gym_pub_id?: string
-    }
-    follows_count?: number
+    tags?: Array<{
+        pub_id: string
+        name: string
+    }>
+    intents?: Array<{
+        pub_id: string
+        intent: string
+    }>
+    intent_bodyparts?: Array<{
+        pub_id: string
+        bodypart: string
+    }>
+    belonging_gyms?: Array<{
+        pub_id: string
+        name: string
+        gymchain?: {
+            pub_id: string
+            name: string
+            icon_url?: string
+            internal_id?: string
+        }
+        photo_url?: string
+        joined_since?: string
+    }>
+    followings_count?: number
     followers_count?: number
     posts_count?: number
 }
 
 export default async function get(c: Context) {
-    const { spCl } = mustGetSpClSessOrAnon(c);
     const userIdInfo = mustGetCtx<UserIdInfo>(c, 'userIdInfo');
 
     let response: respBody;
 
     if (userIdInfo.anonPubId) {
-        response = await getdata_anon(c, spCl, userIdInfo.anonPubId);
+        response = await getdata_anon(c, userIdInfo.anonPubId);
     } else {
-        response = await getdata(c, spCl, userIdInfo.pubId);
+        response = await getdata(c, userIdInfo.pubId);
     }
 
     return c.json(response);
 }
 
-const getdata = async (c: Context, spCl: SupabaseClient, userPubId: string): Promise<respBody> => {
-    const { data: main, error: mainErr } = await spCl
-        .from('view_users_line_profile')
+const getdata = async (c: Context, userPubId: string): Promise<respBody> => {
+    const { spCl: spClSA } = mustGetSpClSessOrAnon(c);
+    const spClSrv = mustGetCtx<SupabaseClient>(c, 'supabaseClientService');
+
+    const { data: profile, error: profileErr } = await spClSA
+        .from('views_user_profile')
         .select('*')
         .eq('pub_id', userPubId)
         .single();
-    const { data: tags, error: tagsErr } = await spCl
-        .from('view_users_lines_tags')
-        .select('*')
-        .eq('user_pub_id', userPubId);
-    const { data: intents, error: intentsErr } = await spCl
-        .from('view_users_lines_intents')
-        .select('*')
-        .eq('user_pub_id', userPubId);
-    const { data: intentBodyparts, error: intentBodypartsErr } = await spCl
-        .from('view_users_lines_intent_bodyparts')
-        .select('*')
-        .eq('user_pub_id', userPubId);
-    const { data: belongingGyms, error: belongingGymsErr } = await spCl
-        .from('view_users_lines_belonging_gyms')
-        .select('*')
-        .eq('user_pub_id', userPubId);
-    const { data: viewStatusMaster, error: viewStatusMasterErr } = await spCl
-        .from('view_status_master')
-        .select('*')
-        .eq('user_pub_id', userPubId)
-        .order('started_at', { ascending: false, nullsFirst: true })
-        .limit(1);
-    const { data: summary, error: summaryErr } = await spCl
-        .from('view_users_summary')
-        .select('*')
-        .eq('user_pub_id', userPubId)
-        .single();
 
-    if (mainErr || tagsErr || intentsErr || intentBodypartsErr || belongingGymsErr || viewStatusMasterErr || summaryErr) {
-        throw new ApiErrorFatal(`DB access error: ${(mainErr || tagsErr || intentsErr || intentBodypartsErr || belongingGymsErr || viewStatusMasterErr || summaryErr)?.message}`);
+    if (profileErr) {
+        throw new ApiErrorFatal(`DB access error: ${profileErr.message}`);
     }
 
-    const status = viewStatusMaster && viewStatusMaster.length > 0 ? viewStatusMaster[0] : null;
+    if (!profile) {
+        throw new ApiErrorFatal('User not found');
+    }
 
-    const convertRelIdsToPubIds = async (relIds: number[], tableName: string) => {
-        if (relIds.length === 0) return [];
-        const { data, error } = await spCl
-            .from(tableName)
-            .select('pub_id, rel_id')
-            .in('rel_id', relIds);
-        if (error) {
-            console.error(`Failed to convert rel_ids to pub_ids for ${tableName}:`, error);
-            return [];
+    // アイコンの署名URL生成
+    let icon_url: string | undefined = undefined;
+    if (profile.icon_name) {
+        const { data: signedUrlData, error: signedUrlError } = await spClSrv.storage
+            .from('users_icons')
+            .createSignedUrl(profile.icon_name, 60 * 60);
+
+        if (signedUrlError || !signedUrlData?.signedUrl) {
+            throw new ApiErrorFatal(`Failed to create signed URL for icon: ${signedUrlError?.message || 'unknown error'}`);
+        } else {
+            icon_url = signedUrlData.signedUrl;
         }
-        const relIdToPubId = Object.fromEntries(data.map(item => [item.rel_id, item.pub_id]));
-        return relIds.map(relId => relIdToPubId[relId]).filter(Boolean);
-    };
-
-    const tagRelIds = tags?.map((tag: { tag_rel_id: number }) => tag.tag_rel_id).filter(id => id !== null) || [];
-    const intentRelIds = intents?.map((intent: { intent_rel_id: number }) => intent.intent_rel_id).filter(id => id !== null) || [];
-    const bodypartRelIds = intentBodyparts?.map((bp: { bodypart_rel_id: number }) => bp.bodypart_rel_id).filter(id => id !== null) || [];
-    const gymRelIds = belongingGyms?.map((gym: { gym_rel_id: number }) => gym.gym_rel_id).filter(id => id !== null) || []
-
-    const [tagPubIds, intentPubIds, bodypartPubIds, gymPubIds] = await Promise.all([
-        convertRelIdsToPubIds(tagRelIds, 'tags_master'),
-        convertRelIdsToPubIds(intentRelIds, 'intents_master'),
-        convertRelIdsToPubIds(bodypartRelIds, 'bodyparts_master'),
-        convertRelIdsToPubIds(gymRelIds, 'gyms_master')
-    ]);
-
-    let gymPubIdForStatus: string | undefined = undefined;
-    if (status?.gym_rel_id) {
-        const gymStatusPubIds = await convertRelIdsToPubIds([status.gym_rel_id], 'gyms_master');
-        gymPubIdForStatus = gymStatusPubIds[0];
     }
 
-    let icon_url: string | null = null;
-    if (main?.icon_rel_id) {
-        try {
-            const { data: signedUrlData, error: signedUrlError } = await spCl.storage
-                .from('users_icons')
-                .createSignedUrl(main.icon_rel_id, 60 * 60);
+    // belonging_gymsのphoto署名URL生成
+    const belonging_gyms = Array.isArray(profile.belonging_gyms)
+        ? await Promise.all(profile.belonging_gyms.map(async (gym: {
+            pub_id: string;
+            name: string;
+            gymchain?: {
+                pub_id: string;
+                name: string;
+                icon_rel_id?: string;
+                icon_name?: string;
+                internal_id?: string;
+            };
+            photo_rel_id?: string;
+            photo_name?: string;
+            joined_since?: string;
+        }) => {
+            let photo_url: string | undefined = undefined;
+            if (gym.photo_name) {
+                try {
+                    const { data: signedUrlData, error: signedUrlError } = await spClSrv.storage
+                        .from('gyms_photos')
+                        .createSignedUrl(gym.photo_name, 60 * 60);
 
-            if (!signedUrlError && signedUrlData?.signedUrl) {
-                icon_url = signedUrlData.signedUrl;
+                    if (!signedUrlError && signedUrlData?.signedUrl) {
+                        photo_url = signedUrlData.signedUrl;
+                    }
+                } catch (e) {
+                    console.error('Failed to create signed URL for gym photo:', e);
+                }
             }
-        } catch (e) {
-            console.error('Failed to create signed URL for icon:', e);
-        }
-    }
+
+            // gymchainのicon署名URL生成
+            let gymchain_with_icon_url;
+            if (gym.gymchain) {
+                let gymchain_icon_url: string | undefined = undefined;
+                if (gym.gymchain.icon_name) {
+                    try {
+                        const { data: signedUrlData, error: signedUrlError } = await spClSrv.storage
+                            .from('gymchains_icons')
+                            .createSignedUrl(gym.gymchain.icon_name, 60 * 60);
+
+                        if (!signedUrlError && signedUrlData?.signedUrl) {
+                            gymchain_icon_url = signedUrlData.signedUrl;
+                        }
+                    } catch (e) {
+                        console.error('Failed to create signed URL for gymchain icon:', e);
+                    }
+                }
+
+                gymchain_with_icon_url = {
+                    ...gym.gymchain,
+                    icon_url: gymchain_icon_url,
+                    icon_rel_id: undefined, // 元のicon_rel_idフィールドは削除
+                    icon_name: undefined // 元のicon_nameフィールドは削除
+                };
+            }
+
+            return {
+                ...gym,
+                photo_url,
+                photo_rel_id: undefined, // 元のphoto_rel_idフィールドは削除
+                photo_name: undefined, // 元のphoto_nameフィールドは削除
+                gymchain: gymchain_with_icon_url,
+                joined_since: gym.joined_since ? convDurationForFE(new Date(gym.joined_since), new Date(), precision.DAY) : undefined
+            };
+        }))
+        : [];
 
     return {
-        pub_id: main?.pub_id,
-        anon_pub_id: main?.anon_pub_id,
-        handle: main?.handle,
-        display_name: main?.display_name,
-        description: main?.description,
-        icon_url: icon_url || undefined,
-        birth_date: main?.birth_date,
-        age: main?.age,
-        generation: main?.generation,
-        gender: main?.gender,
-        registerd_since: main?.registerd_since,
-        training_since: main?.training_since,
-        skill_level: main?.skill_level,
-        tags: tagPubIds,
-        intents: intentPubIds,
-        intent_bodyparts: bodypartPubIds,
-        belonging_gyms: gymPubIds,
-        status: status ? {
-            started_at: status.started_at,
-            finished_at: status.finished_at,
-            is_auto_detected: status.is_auto_detected,
-            gym_pub_id: gymPubIdForStatus
-        } : undefined,
-        follows_count: summary?.follows_count,
-        followers_count: summary?.followers_count,
-        posts_count: summary?.posts_count
+        pub_id: profile.pub_id,
+        handle: profile.handle,
+        display_name: profile.display_name,
+        description: profile.description,
+        icon_url,
+        birth_date: profile.birth_date ? convDateForFE(new Date(profile.birth_date), precision.DAY) : undefined,
+        age: profile.age,
+        generation: profile.generation,
+        gender: profile.gender,
+        registered_since: profile.registered_since ? convDurationForFE(new Date(profile.registered_since), new Date(), precision.DAY) : undefined,
+        training_since: profile.training_since ? convDurationForFE(new Date(profile.training_since), new Date(), precision.DAY) : undefined,
+        skill_level: profile.skill_level,
+        tags: profile.tags || [],
+        intents: profile.intents || [],
+        intent_bodyparts: profile.intent_bodyparts || [],
+        belonging_gyms,
+        followings_count: profile.followings_count,
+        followers_count: profile.followers_count,
+        posts_count: profile.posts_count
     };
 };
 
-const getdata_anon = async (c: Context, spCl: SupabaseClient, userAnonPubId: string): Promise<respBody> => {
-    const { data: main, error: mainErr } = await spCl
-        .from('view_users_line_profile_anon')
+const getdata_anon = async (c: Context, userAnonPubId: string): Promise<respBody> => {
+    const { spCl: spClSA } = mustGetSpClSessOrAnon(c);
+    const spClSrv = mustGetCtx<SupabaseClient>(c, 'supabaseClientService');
+
+    const { data: profile, error: profileErr } = await spClSA
+        .from('views_user_profile_anon')
         .select('*')
         .eq('pub_id', userAnonPubId)
         .single();
-    const { data: tags, error: tagsErr } = await spCl
-        .from('view_users_lines_tags_anon')
-        .select('*')
-        .eq('user_pub_id', userAnonPubId);
-    const { data: intents, error: intentsErr } = await spCl
-        .from('view_users_lines_intents_anon')
-        .select('*')
-        .eq('user_pub_id', userAnonPubId);
-    const { data: intentBodyparts, error: intentBodypartsErr } = await spCl
-        .from('view_users_lines_intent_bodyparts_anon')
-        .select('*')
-        .eq('user_pub_id', userAnonPubId);
-    const { data: belongingGyms, error: belongingGymsErr } = await spCl
-        .from('view_users_lines_belonging_gyms_anon')
-        .select('*')
-        .eq('user_pub_id', userAnonPubId);
-    const { data: viewStatusMaster, error: viewStatusMasterErr } = await spCl
-        .from('view_status_master_anon')
-        .select('*')
-        .eq('user_pub_id', userAnonPubId)
-        .order('started_at', { ascending: false, nullsFirst: true })
-        .limit(1);
-    const { data: summary, error: summaryErr } = await spCl
-        .from('view_users_summary_anon')
-        .select('*')
-        .eq('user_pub_id', userAnonPubId)
-        .single();
 
-    if (mainErr || tagsErr || intentsErr || intentBodypartsErr || belongingGymsErr || viewStatusMasterErr || summaryErr) {
-        throw new ApiErrorFatal(`DB access error: ${(mainErr || tagsErr || intentsErr || intentBodypartsErr || belongingGymsErr || viewStatusMasterErr || summaryErr)?.message}`);
+    if (profileErr) {
+        throw new ApiErrorFatal(`DB access error: ${profileErr.message}`);
     }
 
-    const status = viewStatusMaster && viewStatusMaster.length > 0 ? viewStatusMaster[0] : null;
-
-    const convertRelIdsToPubIds = async (relIds: number[], tableName: string) => {
-        if (relIds.length === 0) return [];
-        const { data, error } = await spCl
-            .from(tableName)
-            .select('pub_id, rel_id')
-            .in('rel_id', relIds);
-        if (error) {
-            console.error(`Failed to convert rel_ids to pub_ids for ${tableName}:`, error);
-            return [];
-        }
-        const relIdToPubId = Object.fromEntries(data.map(item => [item.rel_id, item.pub_id]));
-        return relIds.map(relId => relIdToPubId[relId]).filter(Boolean);
-    };
-
-    const tagRelIds = tags?.map((tag: { tag_rel_id: number }) => tag.tag_rel_id).filter(id => id !== null) || [];
-    const intentRelIds = intents?.map((intent: { intent_rel_id: number }) => intent.intent_rel_id).filter(id => id !== null) || [];
-    const bodypartRelIds = intentBodyparts?.map((bp: { bodypart_rel_id: number }) => bp.bodypart_rel_id).filter(id => id !== null) || [];
-    const gymRelIds = belongingGyms?.map((gym: { gym_rel_id: number }) => gym.gym_rel_id).filter(id => id !== null) || [];
-
-    const [tagPubIds, intentPubIds, bodypartPubIds, gymPubIds] = await Promise.all([
-        convertRelIdsToPubIds(tagRelIds, 'tags_master'),
-        convertRelIdsToPubIds(intentRelIds, 'intents_master'),
-        convertRelIdsToPubIds(bodypartRelIds, 'bodyparts_master'),
-        convertRelIdsToPubIds(gymRelIds, 'gyms_master')
-    ]);
-
-    let gymPubIdForStatus: string | undefined = undefined;
-    if (status?.gym_rel_id) {
-        const gymStatusPubIds = await convertRelIdsToPubIds([status.gym_rel_id], 'gyms_master');
-        gymPubIdForStatus = gymStatusPubIds[0];
+    if (!profile) {
+        throw new ApiErrorFatal('User not found');
     }
 
-    let icon_url: string | null = null;
-    if (main?.icon_rel_id) {
+    // アイコンの署名URL生成
+    let icon_url: string | undefined = undefined;
+    if (profile.icon_name) {
         try {
-            const { data: signedUrlData, error: signedUrlError } = await spCl.storage
+            const { data: signedUrlData, error: signedUrlError } = await spClSrv.storage
                 .from('users_icons')
-                .createSignedUrl(main.icon_rel_id, 60 * 60);
+                .createSignedUrl(profile.icon_name, 60 * 60);
 
             if (!signedUrlError && signedUrlData?.signedUrl) {
                 icon_url = signedUrlData.signedUrl;
@@ -253,32 +220,94 @@ const getdata_anon = async (c: Context, spCl: SupabaseClient, userAnonPubId: str
         }
     }
 
+    // belonging_gymsのphoto署名URL生成
+    const belonging_gyms = Array.isArray(profile.belonging_gyms)
+        ? await Promise.all(profile.belonging_gyms.map(async (gym: {
+            pub_id: string;
+            name: string;
+            gymchain?: {
+                pub_id: string;
+                name: string;
+                icon_rel_id?: string;
+                icon_name?: string;
+                internal_id?: string;
+            };
+            photo_rel_id?: string;
+            photo_name?: string;
+            joined_since?: string;
+        }) => {
+            let photo_url: string | undefined = undefined;
+            if (gym.photo_name) {
+                try {
+                    const { data: signedUrlData, error: signedUrlError } = await spClSrv.storage
+                        .from('gyms_photos')
+                        .createSignedUrl(gym.photo_name, 60 * 60);
+
+                    if (!signedUrlError && signedUrlData?.signedUrl) {
+                        photo_url = signedUrlData.signedUrl;
+                    }
+                } catch (e) {
+                    console.error('Failed to create signed URL for gym photo:', e);
+                }
+            }
+
+            // gymchainのicon署名URL生成
+            let gymchain_with_icon_url;
+            if (gym.gymchain) {
+                let gymchain_icon_url: string | undefined = undefined;
+                if (gym.gymchain.icon_name) {
+                    try {
+                        const { data: signedUrlData, error: signedUrlError } = await spClSrv.storage
+                            .from('gymchains_icons')
+                            .createSignedUrl(gym.gymchain.icon_name, 60 * 60);
+
+                        if (!signedUrlError && signedUrlData?.signedUrl) {
+                            gymchain_icon_url = signedUrlData.signedUrl;
+                        }
+                    } catch (e) {
+                        console.error('Failed to create signed URL for gymchain icon:', e);
+                    }
+                }
+
+                gymchain_with_icon_url = {
+                    ...gym.gymchain,
+                    icon_url: gymchain_icon_url,
+                    icon_rel_id: undefined, // 元のicon_rel_idフィールドは削除
+                    icon_name: undefined // 元のicon_nameフィールドは削除
+                };
+            }
+
+            return {
+                ...gym,
+                photo_url,
+                photo_rel_id: undefined, // 元のphoto_rel_idフィールドは削除
+                photo_name: undefined, // 元のphoto_nameフィールドは削除
+                gymchain: gymchain_with_icon_url,
+                joined_since: gym.joined_since ? convDurationForFE(new Date(gym.joined_since), new Date(), precision.DAY) : undefined
+            };
+        }))
+        : [];
+
     return {
-        pub_id: main?.pub_id,
-        anon_pub_id: main?.anon_pub_id,
-        handle: main?.handle,
-        display_name: main?.display_name,
-        description: main?.description,
-        icon_url: icon_url || undefined,
-        birth_date: main?.birth_date,
-        age: main?.age,
-        generation: main?.generation,
-        gender: main?.gender,
-        registerd_since: main?.registerd_since,
-        training_since: main?.training_since,
-        skill_level: main?.skill_level,
-        tags: tagPubIds,
-        intents: intentPubIds,
-        intent_bodyparts: bodypartPubIds,
-        belonging_gyms: gymPubIds,
-        status: status ? {
-            started_at: status.started_at,
-            finished_at: status.finished_at,
-            is_auto_detected: status.is_auto_detected,
-            gym_pub_id: gymPubIdForStatus
-        } : undefined,
-        follows_count: summary?.follows_count,
-        followers_count: summary?.followers_count,
-        posts_count: summary?.posts_count
+        pub_id: profile.pub_id,
+        anon_pub_id: profile.anon_pub_id,
+        handle: profile.handle,
+        display_name: profile.display_name,
+        description: profile.description,
+        icon_url,
+        birth_date: profile.birth_date ? convDateForFE(new Date(profile.birth_date), precision.DAY) : undefined,
+        age: profile.age,
+        generation: profile.generation,
+        gender: profile.gender,
+        registered_since: profile.registered_since ? convDurationForFE(new Date(profile.registered_since), new Date(), precision.DAY) : undefined,
+        training_since: profile.training_since ? convDurationForFE(new Date(profile.training_since), new Date(), precision.DAY) : undefined,
+        skill_level: profile.skill_level,
+        tags: profile.tags || [],
+        intents: profile.intents || [],
+        intent_bodyparts: profile.intent_bodyparts || [],
+        belonging_gyms,
+        followings_count: profile.followings_count,
+        followers_count: profile.followers_count,
+        posts_count: profile.posts_count
     };
 };
