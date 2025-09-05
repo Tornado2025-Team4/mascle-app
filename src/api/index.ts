@@ -3,10 +3,12 @@ import { createSupabaseClientMW } from './_cmn/create_supaclient';
 import app_tags from './tags';
 import app_intents from './intents';
 import app_bodyparts from './bodyparts';
+import app_gyms from './gyms';
 import { ApiError, ApiErrorFatal, ApiErrorNotFound, ApiErrorTransient } from './_cmn/error';
 import { getEnvMW } from './_cmn/get_env';
 import { logger } from 'hono/logger';
 import app_users from './users';
+import app_gymchains from './gymchains';
 
 const apiApp = new Hono().basePath("/api");
 
@@ -20,6 +22,8 @@ apiApp.use(
 apiApp.route('/tags', app_tags);
 apiApp.route('/intents', app_intents);
 apiApp.route('/bodyparts', app_bodyparts);
+apiApp.route('/gyms', app_gyms);
+apiApp.route('/gymchains', app_gymchains);
 apiApp.route('/users', app_users);
 
 apiApp.notFound(() => {

@@ -155,7 +155,8 @@ export default async function post(c: Context) {
             }
 
             // ビューで通知対象者を取得（プライバシーチェック・匿名化含む）
-            const allTargetsWithAnon: Array<{ pub_id: string, should_be_anon: boolean }> = [];
+            const followerTargetsWithAnon: Array<{ pub_id: string, should_be_anon: boolean }> = [];
+            const gymTargetsWithAnon: Array<{ pub_id: string, should_be_anon: boolean }> = [];
 
             // フォロワー通知対象者を取得
             const { data: followerTargetsData, error: followerTargetsError } = await spClSess
@@ -165,7 +166,7 @@ export default async function post(c: Context) {
 
             if (!followerTargetsError && followerTargetsData) {
                 followerTargetsData.forEach(target => {
-                    allTargetsWithAnon.push({
+                    followerTargetsWithAnon.push({
                         pub_id: target.target_pub_id,
                         should_be_anon: target.should_be_anon
                     });
@@ -182,7 +183,7 @@ export default async function post(c: Context) {
 
                 if (!gymTargetsError && gymTargetsData) {
                     gymTargetsData.forEach(target => {
-                        allTargetsWithAnon.push({
+                        gymTargetsWithAnon.push({
                             pub_id: target.target_pub_id,
                             should_be_anon: target.should_be_anon
                         });
@@ -190,24 +191,23 @@ export default async function post(c: Context) {
                 }
             }
 
-            // 重複を除去（同じユーザーが複数ソースから通知される場合は、より制限の強い設定を採用）
-            const uniqueTargetsMap = new Map<string, boolean>();
-            allTargetsWithAnon.forEach(target => {
-                const existing = uniqueTargetsMap.get(target.pub_id);
-                uniqueTargetsMap.set(target.pub_id, existing === undefined ? target.should_be_anon : (existing || target.should_be_anon));
-            });
-
-            const finalTargets = Array.from(uniqueTargetsMap.entries()).map(([pub_id, should_be_anon]) => ({
-                pub_id,
-                should_be_anon
-            }));
-
-            if (finalTargets.length > 0) {
+            // フォロワーに対する通知を送信
+            if (followerTargetsWithAnon.length > 0) {
                 await sendMessage(
                     spClSrv,
                     noticeKinds.SOCIAL_FOLLOWING_STARTED_TRAINING,
                     userIdInfo.pubId,
-                    finalTargets
+                    followerTargetsWithAnon
+                );
+            }
+
+            // ジムユーザーに対する通知を送信
+            if (gymTargetsWithAnon.length > 0) {
+                await sendMessage(
+                    spClSrv,
+                    noticeKinds.MATCHING_OFFLINE_SAME_GYM,
+                    userIdInfo.pubId,
+                    gymTargetsWithAnon
                 );
             }
         } catch (e) {
