@@ -19,3 +19,24 @@ export const calculateTrainingPeriod = (startDate: string) => {
     return `${years}年`;
   }
 };
+
+// 相対時間を計算
+export const formatRelativeTime = (iso: string) => {
+  const now = new Date();
+  const target = new Date(iso);
+  const diffMs = now.getTime() - target.getTime();
+  const diffMinutes = Math.floor(diffMs / (1000 * 60));
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+
+  if (diffMinutes < 60) {
+    return `${diffMinutes}分前`;
+  } else if (diffHours < 24) {
+    return `${diffHours}時間前`;
+  } else {
+    const month = String(target.getMonth() + 1).padStart(2, "0");
+    const day = String(target.getDate()).padStart(2, "0");
+    const hh = String(target.getHours()).padStart(2, "0");
+    const mm = String(target.getMinutes()).padStart(2, "0");
+    return `${month}/${day} ${hh}:${mm}`;
+  }
+};
