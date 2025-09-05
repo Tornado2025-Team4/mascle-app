@@ -12,19 +12,19 @@ SELECT
         WHEN nm.igniter_user_rel_id IS NOT NULL THEN
             json_build_object(
                 'pub_id', CASE
-                    WHEN nm.should_be_anon THEN NULL
+                    WHEN nlau.should_be_anon THEN NULL
                     ELSE igniter_um.pub_id
                 END,
                 'anon_pub_id', CASE
-                    WHEN nm.should_be_anon THEN igniter_um.anon_pub_id
+                    WHEN nlau.should_be_anon THEN igniter_um.anon_pub_id
                     ELSE NULL
                 END,
                 'handle', CASE
-                    WHEN nm.should_be_anon THEN NULL
+                    WHEN nlau.should_be_anon THEN NULL
                     ELSE igniter_um.handle
                 END,
                 'display_name', CASE
-                    WHEN nm.should_be_anon THEN
+                    WHEN nlau.should_be_anon THEN
                         CASE
                             WHEN igniter_po_anon.completely_hidden = false
                                 AND check_relationship_access(igniter_um.rel_id, igniter_po_anon.display_name)
@@ -39,7 +39,7 @@ SELECT
                         END
                 END,
                 'description', CASE
-                    WHEN nm.should_be_anon THEN
+                    WHEN nlau.should_be_anon THEN
                         CASE
                             WHEN igniter_po_anon.completely_hidden = false
                                 AND check_relationship_access(igniter_um.rel_id, igniter_po_anon.description)
@@ -54,7 +54,7 @@ SELECT
                         END
                 END,
                 'tags', CASE
-                    WHEN nm.should_be_anon THEN
+                    WHEN nlau.should_be_anon THEN
                         CASE
                             WHEN igniter_po_anon.completely_hidden = false
                                 AND check_relationship_access(igniter_um.rel_id, igniter_po_anon.tags) THEN
@@ -95,7 +95,7 @@ SELECT
                         END
                 END,
                 'icon_rel_id', CASE
-                    WHEN nm.should_be_anon THEN
+                    WHEN nlau.should_be_anon THEN
                         CASE
                             WHEN igniter_po_anon.completely_hidden = false
                                 AND check_relationship_access(igniter_um.rel_id, igniter_po_anon.icon)
@@ -110,7 +110,7 @@ SELECT
                         END
                 END,
                 'icon_name', CASE
-                    WHEN nm.should_be_anon THEN
+                    WHEN nlau.should_be_anon THEN
                         CASE
                             WHEN igniter_po_anon.completely_hidden = false
                                 AND check_relationship_access(igniter_um.rel_id, igniter_po_anon.icon)
@@ -125,7 +125,7 @@ SELECT
                         END
                 END,
                 'skill_level', CASE
-                    WHEN nm.should_be_anon THEN
+                    WHEN nlau.should_be_anon THEN
                         CASE
                             WHEN igniter_po_anon.completely_hidden = false
                                 AND check_relationship_access(igniter_um.rel_id, igniter_po_anon.skill_level)
@@ -140,7 +140,7 @@ SELECT
                         END
                 END,
                 'followings_count', CASE
-                    WHEN nm.should_be_anon THEN
+                    WHEN nlau.should_be_anon THEN
                         CASE
                             WHEN igniter_po_anon.completely_hidden = false
                                 AND check_relationship_access(igniter_um.rel_id, igniter_po_anon.followings_count) THEN
@@ -163,7 +163,7 @@ SELECT
                         END
                 END,
                 'followers_count', CASE
-                    WHEN nm.should_be_anon THEN
+                    WHEN nlau.should_be_anon THEN
                         CASE
                             WHEN igniter_po_anon.completely_hidden = false
                                 AND check_relationship_access(igniter_um.rel_id, igniter_po_anon.followers_count) THEN

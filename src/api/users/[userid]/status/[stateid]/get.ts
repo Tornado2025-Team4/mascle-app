@@ -25,6 +25,7 @@ interface respBody {
         };
     } | null;
     partners: Array<{
+        pub_id: string;// >! これ忘れてる
         handle: string;
         display_name?: string;
         description?: string;
@@ -160,6 +161,7 @@ const formatStatusDetailResponse = async (
             };
         } | null;
         partners?: Array<{
+            pub_id: string;
             handle: string;
             display_name?: string;
             description?: string;
@@ -255,6 +257,7 @@ const formatStatusDetailResponse = async (
     // パートナーのアイコン署名URL生成
     const partners = Array.isArray(status.partners)
         ? await Promise.all(status.partners.map(async (partner: {
+            pub_id: string;
             handle: string;
             display_name?: string;
             description?: string;
@@ -283,6 +286,7 @@ const formatStatusDetailResponse = async (
             }
 
             return {
+                pub_id: partner.pub_id,
                 handle: partner.handle,
                 display_name: partner.display_name,
                 description: partner.description,

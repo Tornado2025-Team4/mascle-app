@@ -4,6 +4,8 @@ import { ApiErrorFatal, ApiErrorBadRequest } from '@/src/api/_cmn/error';
 import { mustGetCtx } from '@/src/api/_cmn/get_ctx';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { nanoid } from 'nanoid';
+import { sendMessage, noticeKinds } from '@/src/api/_cmn/send_message';
+import { after } from 'next/server'
 
 interface reqBody {
     started_at: string;
@@ -16,6 +18,7 @@ interface reqBody {
 
 interface respBody {
     pub_id: string;
+    notification_targets?: string[]; // 通知対象者のpub_idリスト
 }
 
 export default async function post(c: Context) {
@@ -80,53 +83,140 @@ export default async function post(c: Context) {
         }
     }
 
-    // トランザクション処理
     const statusPubId = nanoid();
 
-    try {
-        // status_masterに挿入
-        const { data: statusData, error: statusError } = await spClSess
-            .from('status_master')
-            .insert({
-                pub_id: statusPubId,
-                user_rel_id: userRelId,
-                started_at: startedAt.toISOString(),
-                is_auto_detected: body.is_auto_detected || false,
-                gym_rel_id: gymRelId
-            })
-            .select('rel_id')
-            .single();
+    let notificationTargetsPubIds: string[] = [];
 
-        if (statusError || !statusData) {
-            throw new ApiErrorFatal(`Failed to create status: ${statusError?.message}`);
+    // ビューでフォロワー通知対象者を取得
+    const { data: followerTargetsData, error: followerTargetsError } = await spClSess
+        .from('views_notification_targets_followers')
+        .select('target_pub_id, should_be_anon')
+        .eq('igniter_pub_id', userIdInfo.pubId);
+
+    if (followerTargetsError) {
+        console.error('Failed to fetch follower notification targets:', followerTargetsError);
+    } else if (followerTargetsData && followerTargetsData.length > 0) {
+        notificationTargetsPubIds = followerTargetsData.map(target => target.target_pub_id);
+    }
+
+    // ジム通知対象者を取得（ジムが指定されている場合）
+    if (gymRelId) {
+        const { data: gymTargetsData, error: gymTargetsError } = await spClSess
+            .from('views_notification_targets_gym_users')
+            .select('target_pub_id, should_be_anon')
+            .eq('igniter_pub_id', userIdInfo.pubId)
+            .eq('gym_rel_id', gymRelId);
+
+        if (gymTargetsError) {
+            console.error('Failed to fetch gym notification targets:', gymTargetsError);
+        } else if (gymTargetsData && gymTargetsData.length > 0) {
+            const gymTargetPubIds = gymTargetsData.map(target => target.target_pub_id);
+            notificationTargetsPubIds = notificationTargetsPubIds.concat(gymTargetPubIds);
         }
+    }
 
-        const statusRelId = statusData.rel_id;
+    // 重複を除去
+    notificationTargetsPubIds = [...new Set(notificationTargetsPubIds)];
 
-        // パートナーを追加
-        if (partnerRelIds.length > 0) {
-            const partnerInserts = partnerRelIds.map(partnerRelId => ({
-                status_rel_id: statusRelId,
-                partner_user_rel_id: partnerRelId
+    after(async () => {
+        try {
+            const { data: statusData, error: statusError } = await spClSess
+                .from('status_master')
+                .insert({
+                    pub_id: statusPubId,
+                    user_rel_id: userRelId,
+                    started_at: startedAt.toISOString(),
+                    is_auto_detected: body.is_auto_detected || false,
+                    gym_rel_id: gymRelId
+                })
+                .select('rel_id')
+                .single();
+
+            if (statusError || !statusData) {
+                throw new ApiErrorFatal(`Failed to create status: ${statusError?.message}`);
+            }
+
+            const statusRelId = statusData.rel_id;
+
+            // パートナーを追加
+            if (partnerRelIds.length > 0) {
+                const partnerInserts = partnerRelIds.map(partnerRelId => ({
+                    status_rel_id: statusRelId,
+                    partner_user_rel_id: partnerRelId
+                }));
+
+                const { error: partnersError } = await spClSess
+                    .from('status_lines_partners')
+                    .insert(partnerInserts);
+
+                if (partnersError) {
+                    throw new ApiErrorFatal(`Failed to add partners: ${partnersError.message}`);
+                }
+            }
+
+            // ビューで通知対象者を取得（プライバシーチェック・匿名化含む）
+            const allTargetsWithAnon: Array<{ pub_id: string, should_be_anon: boolean }> = [];
+
+            // フォロワー通知対象者を取得
+            const { data: followerTargetsData, error: followerTargetsError } = await spClSess
+                .from('views_notification_targets_followers')
+                .select('target_pub_id, should_be_anon')
+                .eq('igniter_pub_id', userIdInfo.pubId);
+
+            if (!followerTargetsError && followerTargetsData) {
+                followerTargetsData.forEach(target => {
+                    allTargetsWithAnon.push({
+                        pub_id: target.target_pub_id,
+                        should_be_anon: target.should_be_anon
+                    });
+                });
+            }
+
+            // ジム通知対象者を取得（ジムが指定されている場合）
+            if (gymRelId) {
+                const { data: gymTargetsData, error: gymTargetsError } = await spClSess
+                    .from('views_notification_targets_gym_users')
+                    .select('target_pub_id, should_be_anon')
+                    .eq('igniter_pub_id', userIdInfo.pubId)
+                    .eq('gym_rel_id', gymRelId);
+
+                if (!gymTargetsError && gymTargetsData) {
+                    gymTargetsData.forEach(target => {
+                        allTargetsWithAnon.push({
+                            pub_id: target.target_pub_id,
+                            should_be_anon: target.should_be_anon
+                        });
+                    });
+                }
+            }
+
+            // 重複を除去（同じユーザーが複数ソースから通知される場合は、より制限の強い設定を採用）
+            const uniqueTargetsMap = new Map<string, boolean>();
+            allTargetsWithAnon.forEach(target => {
+                const existing = uniqueTargetsMap.get(target.pub_id);
+                uniqueTargetsMap.set(target.pub_id, existing === undefined ? target.should_be_anon : (existing || target.should_be_anon));
+            });
+
+            const finalTargets = Array.from(uniqueTargetsMap.entries()).map(([pub_id, should_be_anon]) => ({
+                pub_id,
+                should_be_anon
             }));
 
-            const { error: partnersError } = await spClSess
-                .from('status_lines_partners')
-                .insert(partnerInserts);
-
-            if (partnersError) {
-                throw new ApiErrorFatal(`Failed to add partners: ${partnersError.message}`);
+            if (finalTargets.length > 0) {
+                await sendMessage(
+                    spClSrv,
+                    noticeKinds.SOCIAL_FOLLOWING_STARTED_TRAINING,
+                    userIdInfo.pubId,
+                    finalTargets
+                );
             }
+        } catch (e) {
+            console.error('Error in after function:', e);
         }
+    })
 
-        return c.json({
-            pub_id: statusPubId
-        } as respBody);
-
-    } catch (error) {
-        if (error instanceof ApiErrorFatal || error instanceof ApiErrorBadRequest) {
-            throw error;
-        }
-        throw new ApiErrorFatal(`Unexpected error: ${error}`);
-    }
+    return c.json({
+        pub_id: statusPubId,
+        notification_targets: notificationTargetsPubIds
+    } as respBody);
 }
