@@ -91,7 +91,7 @@ const Profile = async ({
   return (
     <div className="min-h-screen px-[5vw] pb-[13vh]">
       {/* ヘッダー */}
-      <Header />
+      <Header userId={userId} />
 
       {/* プロフィール情報セクション（薄緑背景） */}
       <div className="bg-green-50 px-6 py-4">

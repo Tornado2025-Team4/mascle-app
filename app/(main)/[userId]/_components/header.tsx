@@ -1,10 +1,11 @@
 'use client'
 import React from 'react'
 import { IoChevronBack } from "react-icons/io5";
-import { IoSettingsOutline } from "react-icons/io5";
+import { FaRegAddressCard } from "react-icons/fa6";
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
-const Header = () => {
+const Header = ({ userId }: { userId: string }) => {
   const router = useRouter();
 
   return (
@@ -14,9 +15,9 @@ const Header = () => {
       </button>
       <h1 className="absolute left-1/2 -translate-x-1/2 text-xl font-semibold">プロフィール</h1>
       <div className="text-3xl">
-        <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-          <IoSettingsOutline />
-        </button>
+        <Link href={`/${userId}/card`} className="p-2 ">
+          <FaRegAddressCard />
+        </Link>
       </div>
     </header> 
   )
