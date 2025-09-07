@@ -1,5 +1,6 @@
-export type NotificationKind = 
+export type NotificationKind =
   | 'matching/offline/same-gym'
+  | 'matching/online/recommend'
   | 'social/follower-added'
   | 'social/following-posted'
   | 'social/following-started-training'
@@ -10,6 +11,16 @@ export type NotificationKind =
   | 'dm/pair/invite-received'
   | 'dm/pair/request-accepted'
   | 'dm/pair/received'
+  | 'dm/group/invite-received'
+  | 'dm/group/request-accepted'
+  | 'dm/group/request-received'
+  | 'dm/group/member-added'
+  | 'dm/group/received'
+  | 'report/resolved'
+  | 'report/rejected'
+  | 'system/warning'
+  | 'system/announcement'
+  | 'other'
 
 export type NotificationMention = {
   rel_id: string

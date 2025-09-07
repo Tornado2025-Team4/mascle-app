@@ -58,7 +58,6 @@ const SetupPage = () => {
       })
       if (!res.ok) {
         const text = await res.text()
-        // eslint-disable-next-line no-console
         console.error('profile patch failed', res.status, text)
         throw new Error(`プロフィールの保存に失敗しました (${res.status}) ${text}`)
       }
@@ -85,7 +84,7 @@ const SetupPage = () => {
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label className="block text-sm mb-1">表示名</label>
-          <Input value={displayName} onChange={(e)=>setDisplayName(e.target.value)} placeholder="例: taro" />
+          <Input value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="例: taro" />
         </div>
         <Button type="submit" disabled={!displayName.trim() || loading} className="w-full">保存して開始</Button>
       </form>

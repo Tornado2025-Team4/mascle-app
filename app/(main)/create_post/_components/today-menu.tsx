@@ -18,31 +18,21 @@ const TodayMenu: React.FC<TodayMenuProps> = ({ selectedExercises, onChangeSelect
   const [activeCategory, setActiveCategory] = useState<string>('胸')
   const [customExercise, setCustomExercise] = useState('')
   const [categories, setCategories] = useState<string[]>(['胸'])
-  const [loading, setLoading] = useState(false)
 
-  useEffect(()=>{
+  useEffect(() => {
     const load = async () => {
-      try{
-        setLoading(true)
+      try {
         const res = await fetch('/api/bodyparts')
         const data: unknown = await res.json()
-        const names: string[] = Array.isArray(data) ? (data as Array<{name?: string} | string>).map((b)=> (typeof b === 'string'? b : (b?.name ?? ''))).filter(Boolean) : []
-        setCategories(names.length? names : ['胸'])
+        const names: string[] = Array.isArray(data) ? (data as Array<{ name?: string } | string>).map((b) => (typeof b === 'string' ? b : (b?.name ?? ''))).filter(Boolean) : []
+        setCategories(names.length ? names : ['胸'])
         setActiveCategory(names[0] ?? '胸')
       } finally {
-        setLoading(false)
+        // API読み込み完了
       }
     }
     load()
-  },[])
-
-  const handleToggleExercise = (name: string) => {
-    onChangeSelected(
-      selectedExercises.includes(name)
-        ? selectedExercises.filter((n) => n !== name)
-        : [...selectedExercises, name]
-    )
-  }
+  }, [])
 
   const handleAddCustomExercise = () => {
     const name = customExercise.trim()

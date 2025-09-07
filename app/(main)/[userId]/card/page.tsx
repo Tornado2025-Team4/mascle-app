@@ -83,7 +83,7 @@ export default function CardPage() {
       link.click()
       document.body.removeChild(link)
       URL.revokeObjectURL(url)
-      
+
       // PDFダウンロード後にページをリロード
       window.location.reload()
     } catch (error) {
@@ -124,10 +124,6 @@ export default function CardPage() {
   const previewCardWidth = 345 // 91mm ≈ 345px (96dpi基準)
   const previewCardHeight = 208 // 55mm ≈ 208px (96dpi基準)
   const previewPadding = 12
-  
-  // スマホ用のサイズ
-  const mobileCardWidth = 240 // スマホ用に小さく
-  const mobileCardHeight = 145 // スマホ用に小さく
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 pb-[13vh]">
@@ -145,13 +141,13 @@ export default function CardPage() {
               <CardTitle>名刺プレビュー</CardTitle>
             </CardHeader>
             <CardContent>
-               <div className="flex justify-center mb-6">
-                 <div
-                   className="shadow-lg relative overflow-hidden md:w-[345px] md:h-[208px] w-[240px] h-[145px]"
-                   style={{
-                     backgroundColor: customization.backgroundColor
-                   }}
-                 >
+              <div className="flex justify-center mb-6">
+                <div
+                  className="shadow-lg relative overflow-hidden md:w-[345px] md:h-[208px] w-[240px] h-[145px]"
+                  style={{
+                    backgroundColor: customization.backgroundColor
+                  }}
+                >
                   {/* 画像 */}
                   {(() => {
                     const imageSize = {
@@ -205,7 +201,7 @@ export default function CardPage() {
                     // テキストサイズに基づく概算サイズ（実際のサイズとは多少異なる場合があります）
                     const titleWidth = CARD_TEXT.title.length * customization.titleSize * 0.8
                     const titleHeight = customization.titleSize
-                    
+
                     const titlePos = getPositionValues(
                       customization.titlePosition,
                       previewCardWidth,
@@ -240,7 +236,7 @@ export default function CardPage() {
                   {(() => {
                     const subtitleWidth = customization.subtitle.length * customization.subtitleSize * 0.8
                     const subtitleHeight = customization.subtitleSize
-                    
+
                     const subtitlePos = getPositionValues(
                       customization.subtitlePosition,
                       previewCardWidth,
@@ -274,7 +270,7 @@ export default function CardPage() {
                   {/* QRコード */}
                   {(() => {
                     const qrSize = 40
-                    
+
                     const qrPos = getPositionValues(
                       customization.qrPosition,
                       previewCardWidth,

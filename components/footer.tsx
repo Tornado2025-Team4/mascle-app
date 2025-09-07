@@ -8,12 +8,11 @@ import { FaRegSquarePlus, FaSquarePlus } from "react-icons/fa6";
 import { RiUser3Line } from "react-icons/ri";
 import { RiUser3Fill } from "react-icons/ri";
 import Link from 'next/link';
-import { usePathname, useParams } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { createClient as createBrowserClient } from '@/utils/supabase/client';
 
 const Footer = () => {
   const pathname = usePathname();
-  const userId = useParams().userId;
   const [profileHref, setProfileHref] = React.useState<string>('/signin');
 
   React.useEffect(() => {

@@ -27,7 +27,7 @@ const ProfileEdit = () => {
 
   // プロフィール初期値（APIから取得）
   const [userData, setUserData] = useState<UserData>({
-    uuid: params.userId,
+    uuid: params.userId ?? '',
     handle_id: '',
     display_name: '',
     description: '',

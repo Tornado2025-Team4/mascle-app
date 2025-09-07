@@ -1,6 +1,5 @@
 'use client'
 import React, { useState } from 'react'
-import { useParams } from 'next/navigation'
 import { Follow } from '@/types/userData.type'
 import { IoArrowBack } from "react-icons/io5";
 import { IoSearch } from "react-icons/io5";
@@ -53,7 +52,6 @@ const follows: Follow[] = [
 ];
 
 const Follows = () => {
-  const userId = useParams().userId;
   const [activeTab, setActiveTab] = useState<'followers' | 'follows'>('followers');
   const [searchQuery, setSearchQuery] = useState('');
   const router = useRouter();
@@ -103,7 +101,7 @@ const Follows = () => {
       {/* ユーザーリスト */}
       <div className="px-4 py-2">
         {filteredData.map((user) => (
-            <div key={user.user_id} className="flex items-center justify-between py-3 border-b border-gray-100 last:border-b-0">
+          <div key={user.user_id} className="flex items-center justify-between py-3 border-b border-gray-100 last:border-b-0">
             <Link href={`/${user.user_id}`} className="flex items-center gap-3 flex-1 min-w-0">
               <div className="w-12 h-12 bg-gray-300 rounded-full overflow-hidden flex-shrink-0">
                 <Image

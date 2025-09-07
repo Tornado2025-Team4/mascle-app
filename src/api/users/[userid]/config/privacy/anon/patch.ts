@@ -4,7 +4,6 @@ import { mustGetCtx } from '../../../../../_cmn/get_ctx';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { UserIdInfo } from '../../../_cmn/userid_resolve';
 import { userIdPub2Rel } from '@/src/api/_cmn/userid_pub2rel';
-import { relship } from '@/src/api/_cmn/enum_relship';
 import { z } from 'zod';
 
 const relshipEnum = [

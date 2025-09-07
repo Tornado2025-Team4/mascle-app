@@ -34,7 +34,7 @@ app_setup.post('/', verifyJwtMW, async (c) => {
       .maybeSingle();
     if (checkErr) throw new ApiErrorFatal(`users_master check failed: ${checkErr.message}`);
 
-    let userRelId: number;
+    let userRelId: number | null = null;
     if (!existing) {
       const randomBase = crypto.randomUUID().replace(/-/g, '');
       const anonPubId = `~${randomBase.slice(0, 21)}`; // 長さ22: ~ + 21

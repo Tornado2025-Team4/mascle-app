@@ -1,6 +1,5 @@
 'use client'
 import React from 'react'
-import { useParams } from 'next/navigation'
 
 // 仮のデータ
 const posts = [
@@ -10,7 +9,6 @@ const posts = [
 ]
 
 const Posts = () => {
-  const userId = useParams().userId;
   return (
     <div>
       <h2>投稿一覧</h2>

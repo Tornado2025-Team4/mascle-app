@@ -12,14 +12,15 @@ import Post from '../_components/post';
 const Profile = async ({
   params,
 }: {
-  params: {
+  params: Promise<{
     userId?: string;
-  };
+  }>;
 }) => {
-  const userId = params?.userId ?? 'me';
+  const resolvedParams = await params;
+  const userId = resolvedParams?.userId ?? 'me';
 
   // 絶対URLと認証ヘッダを準備
-  const hdrs = headers();
+  const hdrs = await headers();
   const host = hdrs.get('host');
   const proto = hdrs.get('x-forwarded-proto') || 'http';
   const base = `${proto}://${host}`;
