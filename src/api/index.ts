@@ -9,6 +9,8 @@ import { getEnvMW } from './_cmn/get_env';
 import { logger } from 'hono/logger';
 import app_users from './users';
 import app_gymchains from './gymchains';
+import app_posts from './posts';
+import app_dm from './dm';
 
 const apiApp = new Hono().basePath("/api");
 
@@ -25,6 +27,8 @@ apiApp.route('/bodyparts', app_bodyparts);
 apiApp.route('/gyms', app_gyms);
 apiApp.route('/gymchains', app_gymchains);
 apiApp.route('/users', app_users);
+apiApp.route('/posts', app_posts);
+apiApp.route('/dm', app_dm);
 
 apiApp.notFound(() => {
     throw new ApiErrorNotFound('API Endpoint');

@@ -47,18 +47,18 @@ export default async function patch(c: Context) {
             throw new ApiErrorBadRequest("Display name too long");
         }
 
-        if (!isValidISODate(updateData.birth_date)) {
+        if (updateData.birth_date && !isValidISODate(updateData.birth_date)) {
             throw new ApiErrorBadRequest("Invalid birth date");
         }
 
-        if (!['male',
+        if (updateData.gender && !['male',
             'female',
             'other',
             'prefer_not_to_say'].includes(updateData.gender)) {
             throw new ApiErrorBadRequest("Invalid gender");
         }
 
-        if (!isValidISODate(updateData.training_since)) {
+        if (updateData.training_since && !isValidISODate(updateData.training_since)) {
             throw new ApiErrorBadRequest("Invalid training since date");
         }
 

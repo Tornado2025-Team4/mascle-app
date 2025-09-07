@@ -36,10 +36,38 @@ export default async function get(c: Context) {
         throw new ApiErrorFatal(`failed to fetch gymchains ${error.message}`);
     }
 
-    const result = (data ?? []).map(row => ({
-        pub_id: row.pub_id,
-        name: row.name,
-        icon_url: row.icon_rel_id ? `/api/storage/icons/${row.icon_rel_id}` : null
+    const result = await Promise.all((data ?? []).map(async (row) => {
+        let icon_url: string | null = null;
+
+        if (row.icon_rel_id) {
+            try {
+                // まず storage.objects テーブルからファイル名を取得
+                const { data: storageData, error: storageError } = await spClAnon
+                    .from('storage.objects')
+                    .select('name')
+                    .eq('id', row.icon_rel_id)
+                    .single();
+
+                if (!storageError && storageData?.name) {
+                    // ファイル名を使って署名付きURLを生成
+                    const { data: signedUrlData, error: signedUrlError } = await spClAnon.storage
+                        .from('gymchains_icons')
+                        .createSignedUrl(storageData.name, 60 * 60);
+
+                    if (!signedUrlError && signedUrlData?.signedUrl) {
+                        icon_url = signedUrlData.signedUrl;
+                    }
+                }
+            } catch (e) {
+                console.error('Failed to create signed URL for gymchain icon:', e);
+            }
+        }
+
+        return {
+            pub_id: row.pub_id,
+            name: row.name,
+            icon_url
+        };
     }));
 
     return c.json(result);

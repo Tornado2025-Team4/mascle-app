@@ -39,19 +39,69 @@ export default async function get(c: Context) {
         }
 
         if (chainData) {
+            let icon_url: string | null = null;
+            if (chainData.icon_rel_id) {
+                try {
+                    // まず storage.objects テーブルからファイル名を取得
+                    const { data: storageData, error: storageError } = await spClAnon
+                        .from('storage.objects')
+                        .select('name')
+                        .eq('id', chainData.icon_rel_id)
+                        .single();
+
+                    if (!storageError && storageData?.name) {
+                        // ファイル名を使って署名付きURLを生成
+                        const { data: signedUrlData, error: signedUrlError } = await spClAnon.storage
+                            .from('gymchains_icons')
+                            .createSignedUrl(storageData.name, 60 * 60);
+
+                        if (!signedUrlError && signedUrlData?.signedUrl) {
+                            icon_url = signedUrlData.signedUrl;
+                        }
+                    }
+                } catch (e) {
+                    console.error('Failed to create signed URL for gymchain icon:', e);
+                }
+            }
+
             chain = {
                 pub_id: chainData.pub_id,
                 name: chainData.name,
-                icon_url: chainData.icon_rel_id ? `/api/storage/icons/${chainData.icon_rel_id}` : null,
+                icon_url,
                 internal_id: gymData.gymchain_internal_id
             };
+        }
+    }
+
+    let photo_url: string | null = null;
+    if (gymData.photo_rel_id) {
+        try {
+            // まず storage.objects テーブルからファイル名を取得
+            const { data: storageData, error: storageError } = await spClAnon
+                .from('storage.objects')
+                .select('name')
+                .eq('id', gymData.photo_rel_id)
+                .single();
+
+            if (!storageError && storageData?.name) {
+                // ファイル名を使って署名付きURLを生成
+                const { data: signedUrlData, error: signedUrlError } = await spClAnon.storage
+                    .from('gyms_photos')
+                    .createSignedUrl(storageData.name, 60 * 60);
+
+                if (!signedUrlError && signedUrlData?.signedUrl) {
+                    photo_url = signedUrlData.signedUrl;
+                }
+            }
+        } catch (e) {
+            console.error('Failed to create signed URL for gym photo:', e);
         }
     }
 
     return c.json({
         pub_id: gymData.pub_id,
         name: gymData.name,
-        photo_url: gymData.photo_rel_id ? `/api/storage/photos/${gymData.photo_rel_id}` : null,
+        photo_url,
         chain
     });
 }

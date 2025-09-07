@@ -20,9 +20,34 @@ export default async function get(c: Context) {
         throw new ApiErrorNotFound("Gymchain");
     }
 
+    let icon_url: string | null = null;
+    if (data.icon_rel_id) {
+        try {
+            // まず storage.objects テーブルからファイル名を取得
+            const { data: storageData, error: storageError } = await spClAnon
+                .from('storage.objects')
+                .select('name')
+                .eq('id', data.icon_rel_id)
+                .single();
+
+            if (!storageError && storageData?.name) {
+                // ファイル名を使って署名付きURLを生成
+                const { data: signedUrlData, error: signedUrlError } = await spClAnon.storage
+                    .from('gymchains_icons')
+                    .createSignedUrl(storageData.name, 60 * 60);
+
+                if (!signedUrlError && signedUrlData?.signedUrl) {
+                    icon_url = signedUrlData.signedUrl;
+                }
+            }
+        } catch (e) {
+            console.error('Failed to create signed URL for gymchain icon:', e);
+        }
+    }
+
     return c.json({
         pub_id: data.pub_id,
         name: data.name,
-        icon_url: data.icon_rel_id ? `/api/storage/icons/${data.icon_rel_id}` : null
+        icon_url
     });
 }

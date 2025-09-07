@@ -98,20 +98,76 @@ export default async function get(c: Context) {
         filteredGyms = gymsData.filter(gym => gym.gymchain_rel_id && validChainRelIds.has(gym.gymchain_rel_id));
     }
 
-    const result = filteredGyms.map(row => {
+    const result = await Promise.all(filteredGyms.map(async (row) => {
         const chain = row.gymchain_rel_id ? gymchainsMap.get(row.gymchain_rel_id) : null;
+
+        let photo_url: string | null = null;
+        if (row.photo_rel_id) {
+            try {
+                // まず storage.objects テーブルからファイル名を取得
+                const { data: storageData, error: storageError } = await spClAnon
+                    .from('storage.objects')
+                    .select('name')
+                    .eq('id', row.photo_rel_id)
+                    .single();
+
+                if (!storageError && storageData?.name) {
+                    // ファイル名を使って署名付きURLを生成
+                    const { data: signedUrlData, error: signedUrlError } = await spClAnon.storage
+                        .from('gyms_photos')
+                        .createSignedUrl(storageData.name, 60 * 60);
+
+                    if (!signedUrlError && signedUrlData?.signedUrl) {
+                        photo_url = signedUrlData.signedUrl;
+                    }
+                }
+            } catch (e) {
+                console.error('Failed to create signed URL for gym photo:', e);
+            }
+        }
+
+        let chainWithIcon = null;
+        if (chain) {
+            let icon_url: string | null = null;
+            if (chain.icon_rel_id) {
+                try {
+                    // まず storage.objects テーブルからファイル名を取得
+                    const { data: storageData, error: storageError } = await spClAnon
+                        .from('storage.objects')
+                        .select('name')
+                        .eq('id', chain.icon_rel_id)
+                        .single();
+
+                    if (!storageError && storageData?.name) {
+                        // ファイル名を使って署名付きURLを生成
+                        const { data: signedUrlData, error: signedUrlError } = await spClAnon.storage
+                            .from('gymchains_icons')
+                            .createSignedUrl(storageData.name, 60 * 60);
+
+                        if (!signedUrlError && signedUrlData?.signedUrl) {
+                            icon_url = signedUrlData.signedUrl;
+                        }
+                    }
+                } catch (e) {
+                    console.error('Failed to create signed URL for gymchain icon:', e);
+                }
+            }
+
+            chainWithIcon = {
+                pub_id: chain.pub_id,
+                name: chain.name,
+                icon_url,
+                internal_id: row.gymchain_internal_id
+            };
+        }
+
         return {
             pub_id: row.pub_id,
             name: row.name,
-            photo_url: row.photo_rel_id ? `/api/storage/photos/${row.photo_rel_id}` : null,
-            chain: chain ? {
-                pub_id: chain.pub_id,
-                name: chain.name,
-                icon_url: chain.icon_rel_id ? `/api/storage/icons/${chain.icon_rel_id}` : null,
-                internal_id: row.gymchain_internal_id
-            } : null
+            photo_url,
+            chain: chainWithIcon
         };
-    });
+    }));
 
     return c.json(result);
 }
