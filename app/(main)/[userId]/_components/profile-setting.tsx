@@ -1,21 +1,25 @@
 'use client'
 import React from 'react'
-import { useParams } from 'next/navigation'
+import { Button } from '@/components/ui/button'
+import { FaEdit } from "react-icons/fa";
+import Link from 'next/link';
 
-const ProfileSetting = () => {
-  const userId = useParams().userId;
+const ProfileSetting = ({
+  userId,
+}: {
+  userId: string;
+}) => {
   return (
     <div>
       {/* 自分のプロフィールのみ表示 */}
       {userId === userId && (
-        <div>
-          <h2>プロフィール編集</h2>
-          <form>
-            <div>
-              <label htmlFor="name">名前</label>
-              <input type="text" id="name" name="name" />
-            </div>
-          </form>
+        <div className="mt-5">
+          <Link href={`/${userId}/edit`}>
+            <Button className="w-full text-base py-5">
+              <FaEdit />
+              プロフィールを編集
+            </Button>
+          </Link>
         </div>
       )}
     </div>

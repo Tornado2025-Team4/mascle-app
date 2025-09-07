@@ -39,7 +39,7 @@ const SignupForm: React.FC = () => {
 
 			if (data.user) {
 				setTimeout(() => {
-					router.replace('/login')
+					router.replace('/')
 					router.refresh()
 				}, 1200)
 			}
@@ -97,7 +97,7 @@ const SignupForm: React.FC = () => {
 				<p className="text-sm text-gray-900">
 					Already have an account?
 				</p>
-				<Link href="/login" className="ml-4 text-black text-sm font-bold underline">
+				<Link href="/signin" className="ml-4 text-black text-sm font-bold underline">
 					Sign in
 				</Link>
 			</div>
