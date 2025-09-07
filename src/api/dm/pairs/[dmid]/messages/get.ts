@@ -144,10 +144,13 @@ export default async function get(c: Context) {
           handle: userData?.handle || '',
           display_name: userData?.display_name || '',
           description: userData?.description || null,
-          tags: (userData?.user_tags || []).map((ut: any) => ({
-            pub_id: ut.tag.pub_id,
-            name: ut.tag.name
-          })),
+          tags: (userData?.user_tags || []).map((ut) => {
+            const ut2 = ut as unknown as { tag: { pub_id: string; name: string } };
+            return {
+              pub_id: ut2.tag.pub_id,
+              name: ut2.tag.name
+            };
+          }),
           icon_url: userData?.icon_url || null,
           skill_level: userData?.skill_level || null,
           followings_count: userData?.followings_count || 0,
