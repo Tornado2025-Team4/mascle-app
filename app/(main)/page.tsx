@@ -5,7 +5,7 @@ import { createClient as createServerSupabase } from "@/utils/supabase/server";
 import Link from "next/link";
 
 async function fetchMyProfile() {
-  const hdrs = headers();
+  const hdrs = await headers();
   const host = hdrs.get('host');
   const proto = hdrs.get('x-forwarded-proto') || 'http';
   const base = `${proto}://${host}`;
@@ -22,15 +22,21 @@ async function fetchMyProfile() {
     }
   });
   if (res.status === 401 || res.status === 403) {
-    return { authed: false as const, profile: null as any };
+    return { authed: false as const, profile: null as null };
   }
-  if (!res.ok) return { authed: true as const, profile: null as any };
+  if (!res.ok) return { authed: true as const, profile: null as null };
   const profile = await res.json();
   return { authed: true as const, profile };
 }
 
+import type { UserData } from "@/types/userData.type";
+
+type FetchMyProfileResult =
+  | { authed: false; profile: null }
+  | { authed: true; profile: UserData | null };
+
 export default async function Home() {
-  const { authed, profile } = await fetchMyProfile();
+  const { authed, profile }: FetchMyProfileResult = await fetchMyProfile();
   return (
     <div>
       <Header />
@@ -53,7 +59,7 @@ export default async function Home() {
             <Link href="/setup" className="underline text-blue-600">初期設定へ</Link>
           </section>
         )}
-        <PostList/>
+        <PostList />
       </main>
     </div>
   );
