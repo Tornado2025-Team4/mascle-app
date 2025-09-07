@@ -3,7 +3,6 @@ import post from './post';
 import app_users_userid_status_stateid from './[stateid]';
 import { createSupabaseSessMW } from '@/src/api/_cmn/create_supasess';
 import { verifyJwtMW } from '@/src/api/_cmn/verify_jwt';
-import app from '@/src/api_old';
 import { rejectSpecByAnonMW } from '../_cmn/reject_spec_by_anon';
 
 const app_users_userid_status = new Hono();
