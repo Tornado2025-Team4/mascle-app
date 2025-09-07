@@ -20,8 +20,18 @@ export const resolveUserId = async (
         if (!userAuthnInfo) {
             throw new ApiErrorUnauthorized("API Endpoint", "User not authenticated");
         }
+        // Map auth user id -> users_master.pub_id
+        const spClService = mustGetCtx<SupabaseClient>(c, 'supabaseClientService');
+        const { data: userRow, error: userErr } = await spClService
+            .from('users_master')
+            .select('pub_id')
+            .eq('pub_id', userAuthnInfo.obj.id)
+            .single();
+        if (userErr || !userRow) {
+            throw new ApiErrorNotFound("User");
+        }
         return {
-            pubId: userAuthnInfo.obj.id,
+            pubId: userRow.pub_id,
             anonPubId: undefined,
             specByAnon: false
         };

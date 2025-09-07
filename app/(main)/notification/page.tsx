@@ -8,7 +8,6 @@ import type { Notification } from '@/types/notification.type'
 import { getNotificationDisplayText, handleNotificationClick } from '@/lib/notification'
 import { formatRelativeTime } from '@/lib/date'
 import Image from 'next/image'
-import { fallbackNotifications } from '@/data/notifications'
 
 const Notification = () => {
   const router = useRouter()
@@ -23,10 +22,14 @@ const Notification = () => {
       try {
         setIsLoading(true)
         setError(null)
-        setNotifications(fallbackNotifications)
+        const res = await fetch('/api/users/me/notices')
+        if (!res.ok) throw new Error('通知の取得に失敗しました')
+        const body: { notices: Array<Notification> } = await res.json()
+        setNotifications(body.notices ?? [])
       } catch (err) {
         console.error(err)
-        setError(null)
+        setError('通知の取得に失敗しました')
+        setNotifications([])
       } finally {
         setIsLoading(false)
       }

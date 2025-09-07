@@ -1,56 +1,10 @@
 'use client'
 import React, { useEffect, useState } from 'react'
-import Link from 'next/link'
 import Image from 'next/image'
 import { IoChevronBack } from "react-icons/io5";
 import { IoSearch } from "react-icons/io5";
 import { useRouter } from 'next/navigation';
 import { DMPair } from '@/types/dm.type';
-// import { fetchDMPairs } from '@/lib/dm';
-
-// テストデータ
-const testDMs: DMPair[] = [
-  {
-    dm_id: "dm-001",
-    user_b_id: "user-001",
-    user_b_display_name: "田中太郎",
-    user_b_icon_url: "/images/image.png",
-    last_message: "お疲れ様です！今日のトレーニングどうでしたか？",
-    last_message_at: "2024-01-15T14:30:00Z",
-    unread_count: 2,
-    user_b_allowed: true,
-  },
-  {
-    dm_id: "dm-002",
-    user_b_id: "user-002",
-    user_b_display_name: "佐藤花子",
-    user_b_icon_url: "/images/image.png",
-    last_message: "明日のジム一緒に行きませんか？",
-    last_message_at: "2024-01-15T12:15:00Z",
-    unread_count: 0,
-    user_b_allowed: true,
-  },
-  {
-    dm_id: "dm-003",
-    user_b_id: "user-003",
-    user_b_display_name: "山田次郎",
-    user_b_icon_url: "/images/image.png",
-    last_message: "新しいプロテイン試してみました！",
-    last_message_at: "2024-01-14T18:45:00Z",
-    unread_count: 1,
-    user_b_allowed: true,
-  },
-  {
-    dm_id: "dm-004",
-    user_b_id: "user-004",
-    user_b_display_name: "鈴木美咲",
-    user_b_icon_url: "/images/image.png",
-    last_message: "フォームの確認お願いします",
-    last_message_at: "2024-01-14T16:20:00Z",
-    unread_count: 0,
-    user_b_allowed: true,
-  },
-];
 
 const DMs = () => {
   const [searchQuery, setSearchQuery] = useState('')
@@ -63,13 +17,21 @@ const DMs = () => {
     const loadDMs = async () => {
       try {
         setLoading(true)
-        // テストデータを使用
-        await new Promise(resolve => setTimeout(resolve, 1000)) // ローディングをシミュレート
-        setDms(testDMs)
-        
-        // 実際のAPI呼び出し（コメントアウト）
-        // const data = await fetchDMPairs()
-        // setDms(data)
+        const res = await fetch('/api/dm/pairs')
+        if (!res.ok) throw new Error('DM取得に失敗しました')
+        const body: { pairs: Array<{ dm_id: string; partner_pub_id: string; partner_display_name?: string; partner_icon_url?: string | null; partner_allowed: boolean; latest_message?: { body: string; sent_at: string } }> } = await res.json()
+        // APIの構造をUIの型にマッピング（未提供項目は仮値を補完）
+        const mapped: DMPair[] = (body.pairs ?? []).map((p) => ({
+          dm_id: p.dm_id,
+          user_b_id: p.partner_pub_id,
+          user_b_display_name: p.partner_display_name ?? 'ユーザー',
+          user_b_icon_url: p.partner_icon_url ?? '/images/image.png',
+          last_message: p.latest_message?.body ?? '',
+          last_message_at: p.latest_message?.sent_at ?? new Date().toISOString(),
+          unread_count: 0,
+          user_b_allowed: p.partner_allowed,
+        }))
+        setDms(mapped)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'エラーが発生しました')
         console.error('DM取得エラー:', err)
@@ -128,8 +90,8 @@ const DMs = () => {
           </div>
         ) : (
           filteredDms.map((dm) => (
-            <Link 
-              key={dm.dm_id} 
+            <a
+              key={dm.dm_id}
               href={`/dm/${dm.dm_id}`}
               className="flex items-center justify-between py-3 border-b border-gray-100 last:border-b-0"
             >
@@ -166,7 +128,7 @@ const DMs = () => {
                   {dm.unread_count}
                 </div>
               )}
-            </Link>
+            </a>
           ))
         )}
       </div>

@@ -2,14 +2,12 @@
 import React, { useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
-// import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { IoChevronBack, IoTrashOutline, IoCameraOutline } from 'react-icons/io5'
 import TodayMenu from './_components/today-menu'
-
-const GYMS = ['エニタイム新宿店', 'エニタイム渋谷店', 'ゴールドジム表参道', '未設定']
+import { Input } from '@/components/ui/input'
 
 const CreatePost = () => {
   const router = useRouter()
@@ -19,9 +17,17 @@ const CreatePost = () => {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [content, setContent] = useState('')
   const [gym, setGym] = useState<string>('未設定')
+  const [gyms, setGyms] = useState<string[]>([])
+  const [gymsLoading, setGymsLoading] = useState(false)
+  const [gymsError, setGymsError] = useState<string | null>(null)
   const [selectedExercises, setSelectedExercises] = useState<string[]>([])
   const [visibility, setVisibility] = useState<'public' | 'followers'>('public')
   const [submitting, setSubmitting] = useState(false)
+  // タグ
+  const [tagQuery, setTagQuery] = useState('')
+  const [tags, setTags] = useState<Array<{ pub_id: string; name: string }>>([])
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([])
+  const [tagsLoading, setTagsLoading] = useState(false)
 
   // 画像プレビュー生成
   useEffect(() => {
@@ -29,6 +35,56 @@ const CreatePost = () => {
     setImagePreviews(urls)
     return () => urls.forEach((u) => URL.revokeObjectURL(u))
   }, [images])
+
+  // ジム一覧取得
+  useEffect(() => {
+    const ctrl = new AbortController()
+    const loadGyms = async () => {
+      try {
+        setGymsLoading(true)
+        setGymsError(null)
+        const res = await fetch('/api/gyms', { signal: ctrl.signal })
+        if (!res.ok) throw new Error('ジム一覧の取得に失敗しました')
+        const data: unknown = await res.json()
+        const names: string[] = Array.isArray(data)
+          ? (data as Array<{name?: string; gym_name?: string} | string>).map((g) => (typeof g === 'string' ? g : (g?.name ?? g?.gym_name ?? ''))).filter(Boolean)
+          : []
+        setGyms(names.length ? names : ['未設定'])
+      } catch (e) {
+        if (e instanceof DOMException && e.name === 'AbortError') return
+        setGyms(['未設定'])
+        setGymsError('ジム一覧の取得に失敗しました')
+      } finally {
+        setGymsLoading(false)
+      }
+    }
+    loadGyms()
+    return () => ctrl.abort()
+  }, [])
+
+  // タグ取得（クエリ付き）
+  useEffect(() => {
+    const ctrl = new AbortController()
+    const loadTags = async () => {
+      try {
+        setTagsLoading(true)
+        const qp = new URLSearchParams()
+        if (tagQuery) qp.set('name', tagQuery)
+        qp.set('limit', '30')
+        const res = await fetch(`/api/tags?${qp.toString()}`, { signal: ctrl.signal })
+        if (!res.ok) throw new Error('タグ取得に失敗しました')
+        const map: Record<string,string> = await res.json()
+        const arr = Object.entries(map).map(([pub_id,name])=>({pub_id,name}))
+        setTags(arr)
+      } catch {
+        setTags([])
+      } finally {
+        setTagsLoading(false)
+      }
+    }
+    loadTags()
+    return () => ctrl.abort()
+  }, [tagQuery])
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return
@@ -65,12 +121,11 @@ const CreatePost = () => {
       const photos = await filesToBase64(images)
       const payload = {
         body: content,
-        visibility,
-        gym,
-        menu: selectedExercises,
+        // mentions: 未対応
+        tags: selectedTagIds,
         photos,
       }
-      const res = await fetch('/api/userPosts', {
+      const res = await fetch('/api/posts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -129,11 +184,43 @@ const CreatePost = () => {
               <SelectValue placeholder="ジムを選択" />
             </SelectTrigger>
             <SelectContent>
-              {GYMS.map((g) => (
-                <SelectItem key={g} value={g}>{g}</SelectItem>
-              ))}
+              {gymsLoading ? (
+                <SelectItem value={gym}>読み込み中…</SelectItem>
+              ) : (
+                gyms.map((g) => (
+                  <SelectItem key={g} value={g}>{g}</SelectItem>
+                ))
+              )}
             </SelectContent>
           </Select>
+          {gymsError && (<p className="mt-1 text-xs text-red-500">{gymsError}</p>)}
+        </section>
+
+        {/* タグ選択 */}
+        <section>
+          <label className="block text-sm font-medium mb-2">タグ</label>
+          <div className="flex gap-2 mb-2">
+            <Input value={tagQuery} onChange={(e)=>setTagQuery(e.target.value)} placeholder="タグ検索" className="max-w-xs" />
+            {tagsLoading && <span className="text-sm text-gray-500">検索中…</span>}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {tags.map((t)=>{
+              const active = selectedTagIds.includes(t.pub_id)
+              return (
+                <button
+                  key={t.pub_id}
+                  type="button"
+                  onClick={()=> setSelectedTagIds((prev)=> active ? prev.filter(id=>id!==t.pub_id) : [...prev, t.pub_id])}
+                  className={`px-3 py-1 rounded-full border text-sm ${active? 'bg-black text-white border-black':'bg-white text-black'}`}
+                >
+                  {t.name}
+                </button>
+              )
+            })}
+          </div>
+          {selectedTagIds.length>0 && (
+            <div className="mt-2 text-xs text-gray-500">選択済み: {selectedTagIds.length}件</div>
+          )}
         </section>
 
         {/* 今日のメニュー/種目追加 */}
@@ -194,7 +281,7 @@ const CreatePost = () => {
 
         {/* 送信 */}
         <div className="pt-2 pb-24">
-          <Button type="submit" className="w-full" disabled={submitting}>{submitting ? '送信中…' : '投稿する'}</Button>
+          <Button type="submit" className="w-full" disabled={submitting || (!content.trim() && images.length===0)}>{submitting ? '送信中…' : '投稿する'}</Button>
         </div>
       </form>
     </div>

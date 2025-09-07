@@ -9,10 +9,19 @@ import { RiUser3Line } from "react-icons/ri";
 import { RiUser3Fill } from "react-icons/ri";
 import Link from 'next/link';
 import { usePathname, useParams } from 'next/navigation';
+import { createClient as createBrowserClient } from '@/utils/supabase/client';
 
 const Footer = () => {
   const pathname = usePathname();
   const userId = useParams().userId;
+  const [profileHref, setProfileHref] = React.useState<string>('/signin');
+
+  React.useEffect(() => {
+    const supabase = createBrowserClient();
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setProfileHref(user ? '/me' : '/signin');
+    }).catch(() => setProfileHref('/signin'));
+  }, []);
   return (
     <footer className="fixed bottom-0 left-0 w-full h-[10vh] bg-gray-200 flex items-center justify-center z-50">
       <nav aria-label="フッターナビゲーション" className="w-full">
@@ -52,8 +61,8 @@ const Footer = () => {
 
           {/* Profile */}
           <li>
-            <Link href={`/${userId}`} aria-label="プロフィール">
-              {pathname === `/${userId}` || pathname === `/${userId}/follows` || pathname === `/${userId}/edit` ? (
+            <Link href={profileHref} aria-label="プロフィール">
+              {pathname === profileHref || pathname === `${profileHref}/follows` || pathname === `${profileHref}/edit` ? (
                 <RiUser3Fill />
               ) : (
                 <RiUser3Line />

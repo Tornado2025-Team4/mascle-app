@@ -6,8 +6,6 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className={fontClassName}>{children}</body>
-    </html>
+    <div className={fontClassName}>{children}</div>
   );
 }

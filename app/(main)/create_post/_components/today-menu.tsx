@@ -1,20 +1,12 @@
 'use client'
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { IoAdd } from 'react-icons/io5'
 
-const DEFAULT_EXERCISES: Record<string, string[]> = {
-  '胸': ['インクラインダンベルプレス (40°)', 'インクラインダンベルプレス (30°)', 'ダンベルフライ'],
-  '肩': ['ショルダープレス', 'サイドレイズ', 'リアレイズ'],
-  '腕': ['アームカール', 'トライセプスエクステンション'],
-  '背': ['デッドリフト', 'ラットプルダウン'],
-  '脚': ['スクワット', 'レッグプレス'],
-  '腹': ['クランチ', 'レッグレイズ'],
-  '有酸素': ['トレッドミル', 'バイク']
-}
+// APIから部位リストを取得
 
 type TodayMenuProps = {
   selectedExercises: string[]
@@ -25,6 +17,24 @@ const TodayMenu: React.FC<TodayMenuProps> = ({ selectedExercises, onChangeSelect
   const [menuOpen, setMenuOpen] = useState(false)
   const [activeCategory, setActiveCategory] = useState<string>('胸')
   const [customExercise, setCustomExercise] = useState('')
+  const [categories, setCategories] = useState<string[]>(['胸'])
+  const [loading, setLoading] = useState(false)
+
+  useEffect(()=>{
+    const load = async () => {
+      try{
+        setLoading(true)
+        const res = await fetch('/api/bodyparts')
+        const data: unknown = await res.json()
+        const names: string[] = Array.isArray(data) ? (data as Array<{name?: string} | string>).map((b)=> (typeof b === 'string'? b : (b?.name ?? ''))).filter(Boolean) : []
+        setCategories(names.length? names : ['胸'])
+        setActiveCategory(names[0] ?? '胸')
+      } finally {
+        setLoading(false)
+      }
+    }
+    load()
+  },[])
 
   const handleToggleExercise = (name: string) => {
     onChangeSelected(
@@ -54,26 +64,14 @@ const TodayMenu: React.FC<TodayMenuProps> = ({ selectedExercises, onChangeSelect
           </SheetHeader>
           <div className="px-4 pt-3">
             <Tabs value={activeCategory} onValueChange={setActiveCategory}>
-              <TabsList className="grid grid-cols-7 gap-1">
-                {Object.keys(DEFAULT_EXERCISES).map((cat) => (
+              <TabsList className="grid grid-cols-4 gap-1">
+                {categories.map((cat) => (
                   <TabsTrigger key={cat} value={cat} className="text-xs">{cat}</TabsTrigger>
                 ))}
               </TabsList>
-              {Object.entries(DEFAULT_EXERCISES).map(([cat, list]) => (
+              {categories.map((cat) => (
                 <TabsContent key={cat} value={cat} className="mt-2">
                   <ul className="divide-y rounded-lg border">
-                    {list.map((name) => (
-                      <li key={name} className="flex items-center justify-between px-3 py-3">
-                        <button
-                          type="button"
-                          onClick={() => handleToggleExercise(name)}
-                          className="flex items-center gap-3 text-left flex-1"
-                        >
-                          <span className={`inline-block w-3 h-3 rounded-full border ${selectedExercises.includes(name) ? 'bg-red-500 border-red-500' : 'border-red-500'}`} />
-                          <span className="text-sm">{name}</span>
-                        </button>
-                      </li>
-                    ))}
                     <li className="px-3 py-3">
                       <div className="flex items-center gap-2">
                         <button type="button" className="text-red-500 text-xl" onClick={handleAddCustomExercise}>

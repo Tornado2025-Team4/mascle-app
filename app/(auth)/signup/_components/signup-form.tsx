@@ -39,9 +39,9 @@ const SignupForm: React.FC = () => {
 
 			if (data.user) {
 				setTimeout(() => {
-					router.replace('/')
+					router.replace('/setup')
 					router.refresh()
-				}, 1200)
+				}, 800)
 			}
 		} catch (error) {
 			console.error('Failed to sign up', error)

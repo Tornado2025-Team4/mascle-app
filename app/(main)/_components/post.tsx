@@ -15,7 +15,7 @@ import { FaRegHandshake } from "react-icons/fa";
 import Link from 'next/link';
 
 interface PostProps {
-  post_id: number;
+  post_id: string | number;
   user_display_name: string;
   user_icon: string;
   body: string;

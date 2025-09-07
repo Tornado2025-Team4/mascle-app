@@ -21,7 +21,10 @@ const parseReqQuery = (c: Context): reqQuery => {
 
 interface respBody {
   pairs: Array<{
+    dm_id: string;
     partner_pub_id: string;
+    partner_display_name?: string;
+    partner_icon_url?: string | null;
     partner_allowed: boolean;
     latest_message?: {
       body: string;
@@ -67,6 +70,7 @@ export default async function get(c: Context) {
   const { data: pairsData, error: pairsError } = await spClSess
     .from('dm_pairs_master')
     .select(`
+            pub_id,
             rel_id,
             user_a_rel_id,
             user_b_rel_id,
@@ -188,7 +192,10 @@ export default async function get(c: Context) {
     }
 
     return {
+      dm_id: pair.pub_id,
       partner_pub_id: partner.pub_id,
+      partner_display_name: partner.display_name ?? undefined,
+      partner_icon_url: partner.icon_url ?? null,
       partner_allowed: partnerAllowed,
       latest_message: latestMessageFormatted
     };

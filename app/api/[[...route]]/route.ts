@@ -4,12 +4,14 @@ import { handle } from "hono/vercel";
 import { logger } from "hono/logger";
 import epson from "./epson";
 import apiApp from "@/src/api";
+import hello from "./hello";
 
 const app = new Hono().basePath("/api");
 
 app.use("*", logger());
 
 app.route("/epson", epson);
+app.route("/hello", hello);
 
 export const GET = handle(apiApp);
 export const HEAD = handle(apiApp);

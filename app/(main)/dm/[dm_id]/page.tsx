@@ -6,37 +6,13 @@ import { IoChevronBack } from "react-icons/io5";
 import { IoPaperPlane } from "react-icons/io5";
 import { DMHistory } from '@/types/dm.type';
 
-// テストデータ
-const testMessages: DMHistory[] = [
-  {
-    message_id: "msg-001",
-    user_id: "user-001",
-    message: "お疲れ様です！今日のトレーニングどうでしたか？",
-    created_at: "2024-01-15T14:30:00Z",
-  },
-  {
-    message_id: "msg-002", 
-    user_id: "current-user",
-    message: "お疲れ様です！胸のトレーニングを頑張りました。ベンチプレスで新記録が出ました！",
-    created_at: "2024-01-15T14:32:00Z",
-  },
-  {
-    message_id: "msg-003",
-    user_id: "user-001", 
-    message: "すごいですね！おめでとうございます！",
-    created_at: "2024-01-15T14:35:00Z",
-  },
-  {
-    message_id: "msg-004",
-    user_id: "user-001",
-    message: "今度一緒にトレーニングしませんか？",
-    created_at: "2024-01-15T14:36:00Z",
-  },
-];
+// API統合に伴いテストデータ削除
 
 const DM = () => {
   const dmId = useParams().dm_id;
   const router = useRouter();
+  const [partnerName, setPartnerName] = useState('')
+  const [partnerIconUrl, setPartnerIconUrl] = useState('/images/image.png')
   const [messages, setMessages] = useState<DMHistory[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
@@ -46,14 +22,23 @@ const DM = () => {
     const loadMessages = async () => {
       try {
         setLoading(true);
-        // テストデータを使用
-        await new Promise(resolve => setTimeout(resolve, 500));
-        setMessages(testMessages);
-        
-        // 実際のAPI呼び出し（コメントアウト）
-        // const response = await fetch(`/api/dm/${dmId}/histories`)
-        // const data = await response.json()
-        // setMessages(data)
+        // 相手情報
+        const pairRes = await fetch(`/api/dm/pairs/${dmId}`)
+        if (!pairRes.ok) throw new Error('DM情報の取得に失敗しました')
+        const pair: { partner_display_name?: string; partner_icon_url?: string | null } = await pairRes.json()
+        setPartnerName(pair.partner_display_name ?? 'ユーザー')
+        setPartnerIconUrl(pair.partner_icon_url ?? '/images/image.png')
+        // メッセージ一覧
+        const msgsRes = await fetch(`/api/dm/pairs/${dmId}/messages`)
+        if (!msgsRes.ok) throw new Error('DMメッセージの取得に失敗しました')
+        const msgsBody: { messages: Array<{ body: string; sent_at: string }> } = await msgsRes.json()
+        const mapped: DMHistory[] = (msgsBody.messages ?? []).map((m, i) => ({
+          message_id: `${i}`,
+          user_id: 'partner',
+          message: m.body,
+          created_at: m.sent_at,
+        }))
+        setMessages(mapped)
       } catch (err) {
         console.error('メッセージ取得エラー:', err);
       } finally {
@@ -103,16 +88,10 @@ const DM = () => {
         </button>
         <div className="flex items-center gap-3 ml-4">
           <div className="w-10 h-10 bg-black rounded-full overflow-hidden flex-shrink-0">
-            <Image
-              src="/images/image.png"
-              alt="プロフィール画像"
-              width={40}
-              height={40}
-              className="w-full h-full object-cover"
-            />
+            <Image src={partnerIconUrl} alt="プロフィール画像" width={40} height={40} className="w-full h-full object-cover" />
           </div>
           <div>
-            <h1 className="text-lg font-semibold text-black">田中太郎</h1>
+            <h1 className="text-lg font-semibold text-black">{partnerName}</h1>
           </div>
         </div>
       </header>

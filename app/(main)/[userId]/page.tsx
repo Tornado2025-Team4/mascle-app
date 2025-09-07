@@ -1,92 +1,80 @@
 import React from 'react'
+import Image from 'next/image'
+import { headers } from 'next/headers'
+import { createClient as createServerSupabase } from '@/utils/supabase/server'
 import ProfileSetting from './_components/profile-setting'
-import { UserData } from '@/types/userData.type';
 import Header from './_components/header';
 import Link from 'next/link';
 import { FaDumbbell, FaMedal } from 'react-icons/fa';
 import { ImTarget, ImClock, ImLocation, ImTrophy } from 'react-icons/im';
-import { calculateTrainingPeriod } from '@/lib/date';
 import Post from '../_components/post';
 
 const Profile = async ({
   params,
 }: {
-  params: Promise<{
-    userId: string;
-  }>;
-}) => {
-  const { userId } = await params;
-
-  // 仮のユーザーデータ
-  const userData: UserData = {
-    uuid: "user-123",
-    handle_id: "tait_muscle",
-    display_name: "tait",
-    description: "最近筋トレを始めた大学3年生です。仲良くしてください！よろしくお願いします",
-    icon_url: "/images/image.png",
-    tags: ["筋トレ初心者", "大学生", "ボディメイク"],
-    birth_date: "2004-03-15",
-    age: 20,
-    generation: "Z世代",
-    gender: "男性",
-    training_since: "2023-09-01",
-    skill_level: "初級",
-    training_intents: ["ボディメイク", "健康維持", "筋力向上"],
-    training_intent_body_parts: ["胸", "背中", "腕", "脚"],
-    belonging_gyms: [
-      {
-        pub_id: "gym-001",
-        name: "エニタイム新宿店",
-        location: "東京都新宿区"
-      }
-    ],
-    follows_count: 11,
-    followers_count: 12,
-    registered_at: "2023-08-15",
-    last_state: {
-      pub_id: "state-001",
-      started_at: "2024-01-15T10:00:00Z",
-      finished_at: "2024-01-15T11:30:00Z",
-      is_auto_detected: false,
-      gym_pub_id: "gym-001",
-      gym_name: "エニタイム新宿店"
-    }
+  params: {
+    userId?: string;
   };
+}) => {
+  const userId = params?.userId ?? 'me';
 
-  // 仮のユーザー投稿データ（実際はAPIから取得）
-  const userPosts = [
-    {
-      post_id: 1,
-      user_display_name: userData.display_name,
-      user_icon: userData.icon_url,
-      body: '今日は胸の日でした！ベンチプレス頑張りました！',
-      tags: ['#筋トレ', '#胸', '#ベンチプレス'],
-      gym_name: userData.belonging_gyms[0]?.name || '未設定',
-      photos: [
-        { url: "/images/photo1.jpg" },
-        { url: "/images/photo2.jpg" }
-      ],
-      posted_at: '2024-01-15',
-      like_count: 15,
-      comments_count: 3
-    },
-    {
-      post_id: 2,
-      user_display_name: userData.display_name,
-      user_icon: userData.icon_url,
-      body: '背中のトレーニング完了！デッドリフトで追い込みました。',
-      tags: ['#筋トレ', '#背中', '#デッドリフト'],
-      gym_name: userData.belonging_gyms[0]?.name || '未設定',
-      photos: [
-        { url: "/images/photo1.jpg" }
-      ],
-      posted_at: '2024-01-14',
-      like_count: 8,
-      comments_count: 1
-    }
-  ];
+  // 絶対URLと認証ヘッダを準備
+  const hdrs = headers();
+  const host = hdrs.get('host');
+  const proto = hdrs.get('x-forwarded-proto') || 'http';
+  const base = `${proto}://${host}`;
+  const supabase = await createServerSupabase();
+  const { data: sess } = await supabase.auth.getSession();
+  const accessToken = sess.session?.access_token;
+  const reqHeaders: Record<string, string> = {
+    cookie: hdrs.get('cookie') ?? ''
+  };
+  if (accessToken) reqHeaders.Authorization = `Bearer ${accessToken}`;
 
-  const trainingPeriod = calculateTrainingPeriod(userData.training_since);
+  // プロフィール取得
+  const profileRes = await fetch(`${base}/api/users/${userId}/profile`, { cache: 'no-store', headers: reqHeaders });
+  if (!profileRes.ok) {
+    throw new Error('プロフィール取得に失敗しました');
+  }
+  const profile: {
+    pub_id?: string;
+    display_name?: string;
+    description?: string;
+    icon_url?: string;
+    tags?: Array<{ name: string }>;
+    gender?: string;
+    age?: number;
+    training_since?: string;
+    belonging_gyms?: Array<{ name: string }>
+    followers_count?: number;
+    followings_count?: number;
+  } = await profileRes.json();
+
+  // ユーザー投稿取得
+  const postsRes = await fetch(`${base}/api/posts?user_pub_id=${profile.pub_id ?? userId}`, { cache: 'no-store', headers: reqHeaders });
+  const postsJson: Array<{
+    pub_id: string;
+    posted_user: { display_name: string; icon_url?: string | null };
+    body: string;
+    tags: Array<string | { name?: string }>;
+    photos: Array<{ url: string }>;
+    posted_at: string;
+    likes_count: number;
+    comments_count: number;
+  }> = postsRes.ok ? await postsRes.json() : [];
+
+  const userPosts = postsJson.map((p) => ({
+    post_id: p.pub_id,
+    user_display_name: p.posted_user?.display_name ?? (profile.display_name ?? ''),
+    user_icon: p.posted_user?.icon_url ?? (profile.icon_url ?? '/images/image.png'),
+    body: p.body ?? '',
+    tags: (p.tags ?? []).map((t) => (typeof t === 'string' ? t : (t?.name ? `#${t.name}` : ''))).filter(Boolean) as string[],
+    gym_name: profile.belonging_gyms?.[0]?.name ?? '未設定',
+    photos: (p.photos ?? []).map((ph) => ({ url: ph.url })),
+    posted_at: p.posted_at ?? '',
+    like_count: p.likes_count ?? 0,
+    comments_count: p.comments_count ?? 0,
+  }));
 
   return (
     <div className="min-h-screen px-[5vw] pb-[13vh]">
@@ -98,14 +86,16 @@ const Profile = async ({
         <div className="flex items-start gap-6">
           {/* プロフィール画像とユーザー名 */}
           <div className="flex flex-col items-center gap-2 mt-4">
-            <div className="w-20 h-20 bg-gray-300 rounded-full flex-shrink-0 overflow-hidden">
-              <img
-                src={userData.icon_url}
-                alt={`${userData.display_name}のプロフィール画像`}
-                className="w-full h-full object-cover"
+            <div className="w-20 h-20 bg-gray-300 rounded-full flex-shrink-0 overflow-hidden relative">
+              <Image
+                src={profile.icon_url ?? '/images/image.png'}
+                alt={`${profile.display_name ?? ''}のプロフィール画像`}
+                fill
+                sizes="80px"
+                className="object-cover"
               />
             </div>
-            <h3 className="text-xl font-semibold text-center">{userData.display_name}</h3>
+            <h3 className="text-xl font-semibold text-center">{profile.display_name ?? ''}</h3>
           </div>
 
           {/* ユーザー情報と統計 */}
@@ -113,25 +103,23 @@ const Profile = async ({
             <Link href={userId + "/follows"} className="flex items-center justify-center gap-8 mt-2 mb-4">
 
               <div className="text-center">
-                <div className="text-xl font-bold">{userData.followers_count}</div>
+                <div className="text-xl font-bold">{profile.followers_count ?? 0}</div>
                 <div className="text-sm text-gray-600">フォロワー</div>
               </div>
               <div className="text-center">
-                <div className="text-xl font-bold">{userData.follows_count}</div>
+                <div className="text-xl font-bold">{profile.followings_count ?? 0}</div>
                 <div className="text-sm text-gray-600">フォロー</div>
               </div>
             </Link>
 
             {/* 自己紹介 */}
-            <p className="text-gray-700 text-sm leading-relaxed mb-3">
-              {userData.description}
-            </p>
+            <p className="text-gray-700 text-sm leading-relaxed mb-3">{profile.description ?? ''}</p>
 
             {/* タグ */}
             <div className="flex flex-wrap gap-2">
-              {userData.tags.map((tag, index) => (
+              {(profile.tags ?? []).map((tag: { name: string }, index: number) => (
                 <span key={index} className="px-2 py-1 bg-blue-100 text-blue-700 text-[13px] rounded-full">
-                  {tag}
+                  {tag.name}
                 </span>
               ))}
             </div>
@@ -150,7 +138,7 @@ const Profile = async ({
               <ImTarget className="text-blue-500" />
               <span className="text-gray-600">性別</span>
             </div>
-            <span className="text-gray-800 font-medium">{userData.gender}</span>
+            <span className="text-gray-800 font-medium">{profile.gender ?? '未設定'}</span>
           </div>
 
           <div className="flex items-center justify-between py-3 border-b border-gray-100">
@@ -158,7 +146,7 @@ const Profile = async ({
               <FaMedal className="text-yellow-500" />
               <span className="text-gray-600">年齢</span>
             </div>
-            <span className="text-gray-800 font-medium">{userData.age}歳</span>
+            <span className="text-gray-800 font-medium">{profile.age ?? '-'}{profile.age ? '歳' : ''}</span>
           </div>
 
           <div className="flex items-center justify-between py-3 border-b border-gray-100">
@@ -166,7 +154,7 @@ const Profile = async ({
               <ImClock className="text-green-500" />
               <span className="text-gray-600">ジム暦</span>
             </div>
-            <span className="text-gray-800 font-medium">{trainingPeriod}</span>
+            <span className="text-gray-800 font-medium">{profile.training_since ?? '-'}</span>
           </div>
 
           <div className="flex items-center justify-between py-3 border-b border-gray-100">
@@ -174,7 +162,7 @@ const Profile = async ({
               <ImLocation className="text-red-500" />
               <span className="text-gray-600">ジム</span>
             </div>
-            <span className="text-gray-800 font-medium">{userData.belonging_gyms[0]?.name || "未設定"}</span>
+            <span className="text-gray-800 font-medium">{profile.belonging_gyms?.[0]?.name ?? '未設定'}</span>
           </div>
 
           <div className="flex items-center justify-between py-3 border-b border-gray-100">
@@ -182,7 +170,7 @@ const Profile = async ({
               <ImTrophy className="text-purple-500" />
               <span className="text-gray-600">目的</span>
             </div>
-            <span className="text-gray-800 font-medium">{userData.training_intents[0] || "未設定"}</span>
+            <span className="text-gray-800 font-medium">{(profile.tags ?? [])[0]?.name ?? '未設定'}</span>
           </div>
 
           <div className="flex items-center justify-between py-3">
@@ -190,7 +178,7 @@ const Profile = async ({
               <FaDumbbell className="text-orange-500" />
               <span className="text-gray-600">鍛える部位</span>
             </div>
-            <span className="text-gray-800 font-medium">{userData.training_intent_body_parts.join(" ")}</span>
+            <span className="text-gray-800 font-medium">{(profile.tags ?? []).map(t => t.name).join(' ')}</span>
           </div>
         </div>
 
@@ -216,7 +204,7 @@ const Profile = async ({
       <div className="mt-6">
         <h2 className="text-lg font-bold mb-4 px-[5vw] flex items-center gap-2 text-gray-800">
           <FaDumbbell className="text-orange-500" />
-          {userData.display_name}の投稿
+          {(profile.display_name ?? '')}の投稿
         </h2>
         <div className="flex flex-col gap-4">
           {userPosts.map((post) => (

@@ -1,6 +1,6 @@
 'use client'
-import React, { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import React, { useEffect, useState } from 'react'
+import { useParams, useRouter } from 'next/navigation'
 import { IoArrowBack, IoPencil } from "react-icons/io5";
 import { UserData } from '@/types/userData.type';
 import Image from 'next/image';
@@ -19,40 +19,39 @@ import { Input } from '@/components/ui/input';
 
 const ProfileEdit = () => {
   const router = useRouter();
+  const params = useParams() as { userId?: string };
 
-  // 仮のユーザーデータ
+  // ローディング/エラー
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  // プロフィール初期値（APIから取得）
   const [userData, setUserData] = useState<UserData>({
-    uuid: "user-123",
-    handle_id: "tait_muscle",
-    display_name: "tait",
-    description: "最近筋トレを始めた大学3年生です。仲良くしてください！よろしくお願いします",
-    icon_url: "/images/image.png",
-    tags: ["筋トレ初心者", "大学生", "ボディメイク"],
-    birth_date: "2004-03-15",
-    age: 20,
-    generation: "Z世代",
-    gender: "男性",
-    training_since: "2023-09-01",
-    skill_level: "初級",
-    training_intents: ["ボディメイク", "健康維持", "筋力向上"],
-    training_intent_body_parts: ["胸", "背中", "腕", "脚"],
-    belonging_gyms: [
-      {
-        pub_id: "gym-001",
-        name: "エニタイム新宿店",
-        location: "東京都新宿区"
-      }
-    ],
-    follows_count: 11,
-    followers_count: 12,
-    registered_at: "2023-08-15",
+    uuid: params.userId,
+    handle_id: '',
+    display_name: '',
+    description: '',
+    icon_url: '/images/image.png',
+    tags: [],
+    birth_date: '',
+    age: 0,
+    generation: '',
+    gender: '未設定',
+    training_since: '',
+    skill_level: '',
+    training_intents: [],
+    training_intent_body_parts: [],
+    belonging_gyms: [],
+    follows_count: 0,
+    followers_count: 0,
+    registered_at: '',
     last_state: {
-      pub_id: "state-001",
-      started_at: "2024-01-15T10:00:00Z",
-      finished_at: "2024-01-15T11:30:00Z",
+      pub_id: '',
+      started_at: '',
+      finished_at: undefined,
       is_auto_detected: false,
-      gym_pub_id: "gym-001",
-      gym_name: "エニタイム新宿店"
+      gym_pub_id: '',
+      gym_name: ''
     }
   });
 
@@ -83,6 +82,59 @@ const ProfileEdit = () => {
     bodyParts: userData.training_intent_body_parts.join(" "),
     display_name: userData.display_name,
   });
+
+  // 初期データ取得
+  useEffect(() => {
+    const load = async () => {
+      if (!params.userId) return;
+      try {
+        setLoading(true)
+        const res = await fetch(`/api/users/${params.userId ?? 'me'}/profile`)
+        if (!res.ok) throw new Error('プロフィール取得に失敗しました')
+        const p: {
+          display_name?: string;
+          description?: string;
+          icon_url?: string;
+          gender?: string;
+          age?: number;
+          training_since?: string;
+          tags?: Array<{ name: string }>;
+          belonging_gyms?: Array<{ pub_id: string; name: string; location?: string }>
+        } = await res.json()
+
+        const tags = (p.tags ?? []).map(t => t.name)
+        const belonging_gyms = (p.belonging_gyms ?? [])
+
+        const next: UserData = {
+          ...userData,
+          display_name: p.display_name ?? '',
+          description: p.description ?? '',
+          icon_url: p.icon_url ?? '/images/image.png',
+          gender: p.gender ?? '未設定',
+          age: p.age ?? 0,
+          training_since: p.training_since ?? '',
+          tags,
+          belonging_gyms,
+        }
+        setUserData(next)
+        setEditData({
+          gender: next.gender,
+          age: next.age,
+          trainingSince: next.training_since,
+          gym: next.belonging_gyms[0]?.name || "",
+          intent: next.training_intents[0] || "",
+          bodyParts: next.training_intent_body_parts.join(" "),
+          display_name: next.display_name,
+        })
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'エラーが発生しました')
+      } finally {
+        setLoading(false)
+      }
+    }
+    load()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params.userId])
 
   // アイコン一時ファイル（プレビュー用）
   const [pendingIconFile, setPendingIconFile] = useState<File | null>(null)
@@ -155,6 +207,22 @@ const ProfileEdit = () => {
       pendingIconFile !== null
     );
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <span className="text-gray-500">読み込み中...</span>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <span className="text-red-500">{error}</span>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen pb-[13vh]">

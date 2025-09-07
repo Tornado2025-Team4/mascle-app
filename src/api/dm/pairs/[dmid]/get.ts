@@ -5,7 +5,10 @@ import { mustGetCtx } from '@/src/api/_cmn/get_ctx';
 import { SupabaseClient } from '@supabase/supabase-js';
 
 interface respBody {
+  dm_id: string;
   partner_pub_id: string;
+  partner_display_name?: string;
+  partner_icon_url?: string | null;
   partner_allowed: boolean;
   latest_message?: {
     body: string;
@@ -175,7 +178,10 @@ export default async function get(c: Context) {
   }
 
   return c.json({
+    dm_id: dmid,
     partner_pub_id: partner.pub_id,
+    partner_display_name: partner.display_name ?? undefined,
+    partner_icon_url: partner.icon_url ?? null,
     partner_allowed: partnerAllowed,
     latest_message: latestMessageFormatted
   } as respBody);
