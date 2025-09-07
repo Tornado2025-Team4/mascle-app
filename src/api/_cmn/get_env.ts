@@ -1,0 +1,34 @@
+import { MiddlewareHandler } from 'hono';
+import { ApiErrorFatal } from './error';
+
+export interface ApiEnv {
+    supabase: {
+        url: string,
+        key_anon: string,
+        key_service_pvt: string,
+    }
+}
+
+const mustGetEnv = (name: string): string => {
+    const env = process.env[name];
+    if (typeof env === 'string') {
+        return env
+    } else {
+        throw new ApiErrorFatal(`Environment variable '${name}' is not set.`);
+    }
+}
+
+export const getEnv = async (): Promise<ApiEnv> => {
+    return {
+        supabase: {
+            url: mustGetEnv('NEXT_PUBLIC_SUPABASE_URL'),
+            key_anon: mustGetEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY'),
+            key_service_pvt: mustGetEnv('SUPABASE_SERVICE_ROLE_KEY'),
+        }
+    } as ApiEnv;
+}
+
+export const getEnvMW: MiddlewareHandler = async (c, next) => {
+    c.set('env', await getEnv());
+    await next();
+}
