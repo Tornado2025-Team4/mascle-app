@@ -14,7 +14,7 @@ export default async function get(c: Context) {
 
     const { data, error } = await spClService
         .from('users_master')
-        .select('pub_id, anon_pub_id, handle')
+        .select('pub_id, anon_pub_id, handle, inited')
         .eq('pub_id', userIdInfo.pubId)
         .single();
     if (error && error.code != 'PGRST116') {
@@ -26,6 +26,7 @@ export default async function get(c: Context) {
     return c.json({
         pub_id: data.pub_id,
         anon_pub_id: data.anon_pub_id,
-        handle: data.handle
+        handle: data.handle,
+        inited: data.inited
     });
 }

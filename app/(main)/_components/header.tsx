@@ -8,12 +8,44 @@ import { FiNavigation } from "react-icons/fi";
 const Header = () => {
   return (
     <header className="w-full h-[10vh] flex items-center justify-between px-8 pt-4">
-      <Image src="/images/titlelogo.svg" alt="titlelogo" width={90} height={20}/>
+      <Image src="/images/titlelogo.svg" alt="titlelogo" width={90} height={20} />
       <div className="flex items-center gap-5 text-3xl">
         <Link href="/notification"><FiHeart /></Link>
         <Link href="/dm"><FiNavigation /></Link>
       </div>
     </header>
+    /* >! 取り込むか検討中
+    <header className="w-full h-[10vh] flex items-center justify-between px-8 pt-4 bg-white border-b border-gray-100">
+      <Link href="/" aria-label="ホームに戻る">
+        <Image
+          src="/images/titlelogo.svg"
+          alt="Mascle ロゴ"
+          width={90}
+          height={20}
+          priority
+          className="h-auto"
+        />
+      </Link>
+      <nav role="navigation" aria-label="ヘッダーナビゲーション">
+        <div className="flex items-center gap-5 text-2xl">
+          <Link
+            href="/notification"
+            aria-label="通知"
+            className="p-2 rounded-lg hover:bg-gray-100 transition-colors duration-200 text-gray-600 hover:text-gray-800"
+          >
+            <FiHeart aria-hidden="true" />
+          </Link>
+          <Link
+            href="/dm"
+            aria-label="ダイレクトメッセージ"
+            className="p-2 rounded-lg hover:bg-gray-100 transition-colors duration-200 text-gray-600 hover:text-gray-800"
+          >
+            <FiNavigation aria-hidden="true" />
+          </Link>
+        </div>
+      </nav>
+    </header>
+     */
   )
 }
 

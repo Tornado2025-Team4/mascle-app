@@ -41,5 +41,13 @@ export default async function patch(c: Context) {
         throw new ApiErrorFatal(`DB update error ${updateError.message}`);
     }
 
+    const { error: initedError } = await spClSess
+        .from('users_master')
+        .update({ inited: true })
+        .eq('pub_id', userIdInfo.pubId);
+    if (initedError) {
+        throw new ApiErrorFatal(`Failed to update inited flag: ${initedError.message}`);
+    }
+
     return c.json({ success: true });
 }

@@ -2,88 +2,114 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { updateSession } from "@/utils/supabase/middleware";
 
+const PUBLIC_PATHS = [
+  "/setup",
+  "/signin",
+  "/signup",
+  "/api",
+  "/favicon.ico",
+  "/_next"
+];
+
+const isPublicPath = (pathname: string): boolean => {
+  return PUBLIC_PATHS.some(path => pathname.startsWith(path));
+};
+
 export async function middleware(request: NextRequest) {
-  const response = await updateSession(request);
+  const { pathname } = request.nextUrl;
 
-  const { pathname, origin } = request.nextUrl;
-  // 除外パス: セットアップ自身/認証ページ
-  if (
-    pathname.startsWith("/setup") ||
-    pathname.startsWith("/signin") ||
-    pathname.startsWith("/signup")
-  ) {
-    return response;
+  // パブリックパスは認証チェックをスキップ
+  if (isPublicPath(pathname)) {
+    return await updateSession(request);
   }
 
-  // 追加の認証チェック: DB上のAuthユーザーが存在しない場合は /signin へ
   try {
+    const response = await updateSession(request);
+
+    // Supabaseクライアントの初期化
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
         cookies: {
           getAll: () => request.cookies.getAll(),
-          setAll: () => {},
+          setAll: () => { },
         },
       }
     );
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
+
+    // ユーザー認証状態をチェック
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+      console.log(`Unauthenticated access to ${pathname}, redirecting to signin`);
+      const url = request.nextUrl.clone();
+      url.pathname = "/signin";
+      url.searchParams.set('redirectTo', pathname);
+      return NextResponse.redirect(url);
+    }
+
+    // セッション取得
+    const { data: sess, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !sess.session?.access_token) {
+      console.log(`Session error for ${pathname}, redirecting to signin`);
       const url = request.nextUrl.clone();
       url.pathname = "/signin";
       return NextResponse.redirect(url);
     }
-  } catch {
-    // 何もしない（下のフローで判定）
-  }
 
-  try {
-    // 認証済みならプロフィールの最低限設定を確認
-    // 'me' はAPI側でJWT必須のため、サーバー側で取得した user.id を使う
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll: () => request.cookies.getAll(),
-          setAll: () => {},
+    // プロフィール設定チェック
+    try {
+      const profileRes = await fetch(`${request.nextUrl.origin}/api/users/me/profile`, {
+        headers: {
+          cookie: request.headers.get("cookie") ?? "",
+          'Cache-Control': 'no-cache',
         },
-      }
-    );
-    const { data: { user: authedUser } } = await supabase.auth.getUser();
-    if (!authedUser) return response;
+      });
 
-    const { data: sess } = await supabase.auth.getSession();
-    const accessToken = sess.session?.access_token;
-    const res = await fetch(`${origin}/api/users/me/profile`, {
-      headers: {
-        cookie: request.headers.get("cookie") ?? "",
-        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-      },
-    });
-    if (res.status === 401 || res.status === 403) {
-      const url = request.nextUrl.clone();
-      url.pathname = "/signin";
-      return NextResponse.redirect(url);
+      if (profileRes.status === 401 || profileRes.status === 403) {
+        console.log(`Profile access forbidden for ${pathname}, redirecting to signin`);
+        const url = request.nextUrl.clone();
+        url.pathname = "/signin";
+        return NextResponse.redirect(url);
+      }
+
+      if (profileRes.ok) {
+        const profile = await profileRes.json();
+        const inited: boolean | undefined = profile?.inited;
+
+        if (!inited) {
+          console.log(`Profile not initialized for ${pathname}, redirecting to setup`);
+          const url = request.nextUrl.clone();
+          url.pathname = "/setup";
+          return NextResponse.redirect(url);
+        }
+      }
+    } catch (profileError) {
+      console.error('Profile check error:', profileError);
+      // プロフィールチェックの失敗は続行を許可
     }
-    if (!res.ok) return response; // その他の取得失敗時はスルー
-    const profile = await res.json();
-    const displayName: string | undefined = profile?.display_name;
-    if (!displayName || displayName.trim().length === 0) {
-      const url = request.nextUrl.clone();
-      url.pathname = "/setup";
-      return NextResponse.redirect(url);
-    }
-  } catch {
-    // 失敗時はそのまま続行
+
     return response;
+  } catch (error) {
+    console.error('Middleware error:', error);
+    // エラー時はサインインページにリダイレクト
+    const url = request.nextUrl.clone();
+    url.pathname = "/signin";
+    return NextResponse.redirect(url);
   }
-
-  return response;
 }
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|api|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    /*
+     * 以下以外のすべてのリクエストにマッチ:
+     * - api (API routes)
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - 画像ファイル拡張子
+     */
+    "/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

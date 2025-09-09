@@ -52,9 +52,3 @@ apiApp.onError(async (err, c) => {
 });
 
 export default apiApp;
-
-/*
-
-// >! 日付(ISOで返す　JST固定　TZ無し　Tはスペースに置換)
-
-*/

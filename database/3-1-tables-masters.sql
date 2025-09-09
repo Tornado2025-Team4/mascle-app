@@ -6,6 +6,7 @@ CREATE TABLE users_master (
     pub_id                          UUID            NOT NULL UNIQUE REFERENCES auth.users ON DELETE CASCADE,
     anon_pub_id                     CHAR(22)        NOT NULL UNIQUE,
     handle                          VARCHAR(31)     NOT NULL UNIQUE,
+    inited                          BOOLEAN         NOT NULL DEFAULT FALSE,
 
     CONSTRAINT users_master_anon_pub_id_format CHECK (anon_pub_id ~ '^~[a-zA-Z0-9_-]{21}$'),
     CONSTRAINT users_master_handle_format CHECK (handle ~ '^@[a-zA-Z0-9_\.-]{3,30}$')

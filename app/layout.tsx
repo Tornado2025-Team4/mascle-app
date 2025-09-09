@@ -3,12 +3,15 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
+  title: "Proten - 仲間と繋がる筋トレアプリ",
+  description: "筋トレとSNSを組み合わせたトレーニング仲間を見つけるアプリ",
   viewport: {
     width: "device-width",
     initialScale: 1,
     maximumScale: 1,
     userScalable: false,
   },
+  robots: "index,follow",
 };
 
 export default function RootLayout({
@@ -17,9 +20,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-        <body className={fontClassName}>
-          {children}
+    <html lang="ja">
+      <head>
+        <meta charSet="utf-8" />
+        <meta name="theme-color" content="#ffffff" />
+      </head>
+      <body className={fontClassName}>
+        {children}
       </body>
     </html>
   );
