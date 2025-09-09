@@ -114,7 +114,7 @@ function MenubarItem({
 function MenubarCheckboxItem({
   className,
   children,
-  checked,
+  checked = false,
   ...props
 }: React.ComponentProps<typeof MenubarPrimitive.CheckboxItem>) {
   return (
