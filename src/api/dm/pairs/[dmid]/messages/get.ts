@@ -16,7 +16,11 @@ const parseReqQuery = (c: Context): reqQuery => {
   const before = c.req.query('before');
   const after = c.req.query('after');
 
-  return { limit, before, after };
+  const result: reqQuery = { limit };
+  if (before) result.before = before;
+  if (after) result.after = after;
+
+  return result;
 };
 
 interface respBody {

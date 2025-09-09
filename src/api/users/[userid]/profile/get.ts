@@ -174,19 +174,14 @@ const getdata = async (c: Context, userPubId: string): Promise<respBody> => {
         }))
         : [];
 
-    return {
+    const result: respBody = {
         pub_id: profile.pub_id,
         handle: profile.handle,
         display_name: profile.display_name,
         description: profile.description,
-        icon_url,
-        birth_date: profile.birth_date ? convDateForFE(new Date(profile.birth_date), precision.DAY) : undefined,
         age: profile.age,
         generation: profile.generation,
         gender: profile.gender,
-        registered_since: profile.registered_since ? convDurationForFE(new Date(profile.registered_since), new Date(), precision.DAY) : undefined,
-        training_since: profile.training_since ? convDurationForFE(new Date(profile.training_since), new Date(), precision.DAY) : undefined,
-        skill_level: profile.skill_level,
         inited: userMaster?.inited as boolean || false,
         tags: profile.tags || [],
         intents: profile.intents || [],
@@ -196,6 +191,14 @@ const getdata = async (c: Context, userPubId: string): Promise<respBody> => {
         followers_count: profile.followers_count,
         posts_count: profile.posts_count
     };
+
+    if (icon_url) result.icon_url = icon_url;
+    if (profile.birth_date) result.birth_date = convDateForFE(new Date(profile.birth_date), precision.DAY);
+    if (profile.registered_since) result.registered_since = convDurationForFE(new Date(profile.registered_since), new Date(), precision.DAY);
+    if (profile.training_since) result.training_since = convDurationForFE(new Date(profile.training_since), new Date(), precision.DAY);
+    if (profile.skill_level) result.skill_level = profile.skill_level;
+
+    return result;
 };
 
 const getdata_anon = async (c: Context, userAnonPubId: string): Promise<respBody> => {
@@ -311,20 +314,15 @@ const getdata_anon = async (c: Context, userAnonPubId: string): Promise<respBody
         }))
         : [];
 
-    return {
+    const result2: respBody = {
         pub_id: profile.pub_id,
         anon_pub_id: profile.anon_pub_id,
         handle: profile.handle,
         display_name: profile.display_name,
         description: profile.description,
-        icon_url,
-        birth_date: profile.birth_date ? convDateForFE(new Date(profile.birth_date), precision.DAY) : undefined,
         age: profile.age,
         generation: profile.generation,
         gender: profile.gender,
-        registered_since: profile.registered_since ? convDurationForFE(new Date(profile.registered_since), new Date(), precision.DAY) : undefined,
-        training_since: profile.training_since ? convDurationForFE(new Date(profile.training_since), new Date(), precision.DAY) : undefined,
-        skill_level: profile.skill_level,
         inited: userMaster?.inited as boolean || false,
         tags: profile.tags || [],
         intents: profile.intents || [],
@@ -334,4 +332,12 @@ const getdata_anon = async (c: Context, userAnonPubId: string): Promise<respBody
         followers_count: profile.followers_count,
         posts_count: profile.posts_count
     };
+
+    if (icon_url) result2.icon_url = icon_url;
+    if (profile.birth_date) result2.birth_date = convDateForFE(new Date(profile.birth_date), precision.DAY);
+    if (profile.registered_since) result2.registered_since = convDurationForFE(new Date(profile.registered_since), new Date(), precision.DAY);
+    if (profile.training_since) result2.training_since = convDurationForFE(new Date(profile.training_since), new Date(), precision.DAY);
+    if (profile.skill_level) result2.skill_level = profile.skill_level;
+
+    return result2;
 };

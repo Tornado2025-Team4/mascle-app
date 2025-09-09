@@ -14,7 +14,10 @@ const parseReqQuery = (c: Context): reqQuery => {
     const bodypart = c.req.query('bodypart');
     const limit = limitRaw ? Math.min(Number(limitRaw), 100) : 20;
 
-    return { limit, bodypart };
+    const result: reqQuery = { limit };
+    if (bodypart) result.bodypart = bodypart;
+
+    return result;
 };
 
 interface BodypartInfo {

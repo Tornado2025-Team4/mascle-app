@@ -16,7 +16,11 @@ const parseReqQuery = (c: Context): reqQuery => {
   const messaged_after = c.req.query('messaged_after');
   const messaged_before = c.req.query('messaged_before');
 
-  return { limit, messaged_after, messaged_before };
+  const result: reqQuery = { limit };
+  if (messaged_after) result.messaged_after = messaged_after;
+  if (messaged_before) result.messaged_before = messaged_before;
+
+  return result;
 };
 
 interface respBody {

@@ -238,20 +238,41 @@ const formatStatusDetailResponse = async (
                 }
             }
 
-            gymchain_with_icon_url = {
+            const gymchain_result: {
+                pub_id: string;
+                name: string;
+                icon_url?: string;
+                internal_id?: string;
+            } = {
                 pub_id: status.gym.gymchain.pub_id,
-                name: status.gym.gymchain.name,
-                icon_url: gymchain_icon_url,
-                internal_id: status.gym.gymchain.internal_id
+                name: status.gym.gymchain.name
             };
+
+            if (gymchain_icon_url) gymchain_result.icon_url = gymchain_icon_url;
+            if (status.gym.gymchain.internal_id) gymchain_result.internal_id = status.gym.gymchain.internal_id;
+
+            gymchain_with_icon_url = gymchain_result;
         }
 
-        gym = {
+        const gym_result: {
+            pub_id: string;
+            name: string;
+            photo_url?: string;
+            gymchain?: {
+                pub_id: string;
+                name: string;
+                icon_url?: string;
+                internal_id?: string;
+            };
+        } = {
             pub_id: status.gym.pub_id,
-            name: status.gym.name,
-            photo_url,
-            gymchain: gymchain_with_icon_url
+            name: status.gym.name
         };
+
+        if (photo_url) gym_result.photo_url = photo_url;
+        if (gymchain_with_icon_url) gym_result.gymchain = gymchain_with_icon_url;
+
+        gym = gym_result;
     }
 
     // パートナーのアイコン署名URL生成
@@ -285,17 +306,30 @@ const formatStatusDetailResponse = async (
                 }
             }
 
-            return {
+            const partnerResult: {
+                pub_id: string;
+                handle: string;
+                display_name?: string;
+                description?: string;
+                tags: Array<{ pub_id: string; name: string }>;
+                icon_url?: string;
+                skill_level?: string;
+                followings_count?: number;
+                followers_count?: number;
+            } = {
                 pub_id: partner.pub_id,
                 handle: partner.handle,
-                display_name: partner.display_name,
-                description: partner.description,
-                tags: partner.tags || [],
-                icon_url,
-                skill_level: partner.skill_level,
-                followings_count: partner.followings_count,
-                followers_count: partner.followers_count
+                tags: partner.tags || []
             };
+
+            if (partner.display_name) partnerResult.display_name = partner.display_name;
+            if (partner.description) partnerResult.description = partner.description;
+            if (icon_url) partnerResult.icon_url = icon_url;
+            if (partner.skill_level) partnerResult.skill_level = partner.skill_level;
+            if (partner.followings_count !== undefined) partnerResult.followings_count = partner.followings_count;
+            if (partner.followers_count !== undefined) partnerResult.followers_count = partner.followers_count;
+
+            return partnerResult;
         }))
         : [];
 

@@ -48,7 +48,6 @@ const ProfileEdit = () => {
     last_state: {
       pub_id: '',
       started_at: '',
-      finished_at: undefined,
       is_auto_detected: false,
       gym_pub_id: '',
       gym_name: ''

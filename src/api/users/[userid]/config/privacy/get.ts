@@ -103,33 +103,35 @@ export default async function get(c: Context) {
     }
 
     const mapped = res && Array.isArray(res) ? res[0] : res;
-    const response: respBody = mapped ? {
-        display_name: mapped.display_name,
-        description: mapped.description,
-        tags: mapped.tags,
-        icon: mapped.icon,
-        birth_date: mapped.birth_date,
-        age: mapped.age,
-        generation: mapped.generation,
-        gender: mapped.gender,
-        registered_since: mapped.registered_since,
-        training_since: mapped.training_since,
-        skill_level: mapped.skill_level,
-        intents: mapped.intents,
-        intent_bodyparts: mapped.intent_bodyparts,
-        belonging_gyms: mapped.belonging_gyms,
-        status: mapped.status,
-        status_location: mapped.status_location,
-        status_menus: mapped.status_menus,
-        status_histories: mapped.status_histories,
-        followings: mapped.followings,
-        followings_count: mapped.followings_count,
-        followers: mapped.followers,
-        followers_count: mapped.followers_count,
-        posts: mapped.posts,
-        posts_location: mapped.posts_location,
-        posts_count: mapped.posts_count,
-    } : {};
+    const response: respBody = {};
+
+    if (mapped) {
+        if (mapped.display_name !== undefined) response.display_name = mapped.display_name;
+        if (mapped.description !== undefined) response.description = mapped.description;
+        if (mapped.tags !== undefined) response.tags = mapped.tags;
+        if (mapped.icon !== undefined) response.icon = mapped.icon;
+        if (mapped.birth_date !== undefined) response.birth_date = mapped.birth_date;
+        if (mapped.age !== undefined) response.age = mapped.age;
+        if (mapped.generation !== undefined) response.generation = mapped.generation;
+        if (mapped.gender !== undefined) response.gender = mapped.gender;
+        if (mapped.registered_since !== undefined) response.registered_since = mapped.registered_since;
+        if (mapped.training_since !== undefined) response.training_since = mapped.training_since;
+        if (mapped.skill_level !== undefined) response.skill_level = mapped.skill_level;
+        if (mapped.intents !== undefined) response.intents = mapped.intents;
+        if (mapped.intent_bodyparts !== undefined) response.intent_bodyparts = mapped.intent_bodyparts;
+        if (mapped.belonging_gyms !== undefined) response.belonging_gyms = mapped.belonging_gyms;
+        if (mapped.status !== undefined) response.status = mapped.status;
+        if (mapped.status_location !== undefined) response.status_location = mapped.status_location;
+        if (mapped.status_menus !== undefined) response.status_menus = mapped.status_menus;
+        if (mapped.status_histories !== undefined) response.status_histories = mapped.status_histories;
+        if (mapped.followings !== undefined) response.followings = mapped.followings;
+        if (mapped.followings_count !== undefined) response.followings_count = mapped.followings_count;
+        if (mapped.followers !== undefined) response.followers = mapped.followers;
+        if (mapped.followers_count !== undefined) response.followers_count = mapped.followers_count;
+        if (mapped.posts !== undefined) response.posts = mapped.posts;
+        if (mapped.posts_location !== undefined) response.posts_location = mapped.posts_location;
+        if (mapped.posts_count !== undefined) response.posts_count = mapped.posts_count;
+    }
 
     return c.json(response);
 }

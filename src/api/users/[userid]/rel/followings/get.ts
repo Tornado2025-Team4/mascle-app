@@ -85,17 +85,20 @@ export default async function get(c: Context) {
                 }
             }
 
-            return {
+            const result: UserSummary = {
                 pub_id: profile.pub_id,
                 handle: profile.handle,
-                display_name: profile.display_name,
-                description: profile.description,
-                tags: profile.tags || [],
-                icon_url,
-                skill_level: profile.skill_level,
-                followings_count: profile.followings_count,
-                followers_count: profile.followers_count
+                tags: profile.tags || []
             };
+
+            if (profile.display_name) result.display_name = profile.display_name;
+            if (profile.description) result.description = profile.description;
+            if (icon_url) result.icon_url = icon_url;
+            if (profile.skill_level) result.skill_level = profile.skill_level;
+            if (profile.followings_count !== undefined) result.followings_count = profile.followings_count;
+            if (profile.followers_count !== undefined) result.followers_count = profile.followers_count;
+
+            return result;
         })
     );
 

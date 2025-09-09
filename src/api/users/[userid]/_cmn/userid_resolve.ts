@@ -32,7 +32,6 @@ export const resolveUserId = async (
         }
         return {
             pubId: userRow.pub_id,
-            anonPubId: undefined,
             specByAnon: false
         };
     } else if (specUserId.startsWith('@')) {
@@ -47,7 +46,6 @@ export const resolveUserId = async (
         }
         return {
             pubId: data.pub_id,
-            anonPubId: undefined,
             specByAnon: false
         };
     } else if (specUserId.startsWith('~')) {
@@ -77,7 +75,6 @@ export const resolveUserId = async (
         }
         return {
             pubId: data.pub_id,
-            anonPubId: undefined,
             specByAnon: false
         };
     }

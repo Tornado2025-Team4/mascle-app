@@ -24,13 +24,16 @@ const parseReqQuery = (c: Context): reqQuery => {
     const limitRaw = c.req.query('limit');
     const limit = limitRaw ? Math.min(Number(limitRaw), 100) : 20;
 
-    return {
+    const result: reqQuery = {
         only_unread,
-        igniter,
-        before,
-        after,
         limit
     };
+
+    if (igniter) result.igniter = igniter;
+    if (before) result.before = before;
+    if (after) result.after = after;
+
+    return result;
 };
 
 interface NoticeItem {
@@ -147,26 +150,31 @@ export default async function get(c: Context) {
                 }
 
                 igniter_user = {
-                    pub_id: notice.igniter_user.pub_id || undefined,
-                    anon_pub_id: notice.igniter_user.anon_pub_id || undefined,
-                    handle: notice.igniter_user.handle || undefined,
-                    display_name: notice.igniter_user.display_name || undefined,
-                    description: notice.igniter_user.description || undefined,
-                    tags: notice.igniter_user.tags || [],
-                    icon_url,
-                    skill_level: notice.igniter_user.skill_level || undefined,
-                    followings_count: notice.igniter_user.followings_count || undefined,
-                    followers_count: notice.igniter_user.followers_count || undefined,
+                    ...(notice.igniter_user.pub_id && { pub_id: notice.igniter_user.pub_id }),
+                    ...(notice.igniter_user.anon_pub_id && { anon_pub_id: notice.igniter_user.anon_pub_id }),
+                    ...(notice.igniter_user.handle && { handle: notice.igniter_user.handle }),
+                    ...(notice.igniter_user.display_name && { display_name: notice.igniter_user.display_name }),
+                    ...(notice.igniter_user.description && { description: notice.igniter_user.description }),
+                    ...(notice.igniter_user.tags && { tags: notice.igniter_user.tags }),
+                    ...(icon_url && { icon_url }),
+                    ...(notice.igniter_user.skill_level && { skill_level: notice.igniter_user.skill_level }),
+                    ...(notice.igniter_user.followings_count !== undefined && { followings_count: notice.igniter_user.followings_count }),
+                    ...(notice.igniter_user.followers_count !== undefined && { followers_count: notice.igniter_user.followers_count })
                 };
             }
 
-            return {
+            const result: NoticeItem = {
                 pub_id: notice.pub_id,
                 is_read: notice.is_read,
                 notified_at: convDateForFE(new Date(notice.notified_at), precision.SECOND),
-                kind: notice.kind,
-                igniter_user
+                kind: notice.kind
             };
+
+            if (igniter_user) {
+                result.igniter_user = igniter_user;
+            }
+
+            return result;
         })
     );
 
