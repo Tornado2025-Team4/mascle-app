@@ -3,55 +3,160 @@ import { SupabaseClient } from '@supabase/supabase-js';
 import { ApiErrorFatal } from '../_cmn/error';
 import { mustGetCtx } from '../_cmn/get_ctx';
 import { convDateForFE, precision } from '../_cmn/conv_date_for_fe';
+import { UserJwtInfo } from '../_cmn/verify_jwt';
 
 interface reqQuery {
-    user_pub_id?: string;
+    posted_user_pub_id?: string;
+    mentioned_user_pub_id?: string;
+    before?: string;
+    after?: string;
     limit: number;
-    offset: number;
-    before_posted_at?: string;
+    body?: string;
+    tag?: string;
 }
 
 const parseReqQuery = (c: Context): reqQuery => {
-    const user_pub_id = c.req.query('user_pub_id');
+    const posted_user_pub_id = c.req.query('posted_user_pub_id');
+    const mentioned_user_pub_id = c.req.query('mentioned_user_pub_id');
+    const before = c.req.query('before');
+    const after = c.req.query('after');
     const limitRaw = c.req.query('limit');
-    const offsetRaw = c.req.query('offset');
-    const before_posted_at = c.req.query('before_posted_at');
+    const body = c.req.query('body');
+    const tag = c.req.query('tag');
 
     const limit = limitRaw ? Math.min(Number(limitRaw), 50) : 20;
-    const offset = offsetRaw ? Math.max(Number(offsetRaw), 0) : 0;
 
-    return { user_pub_id, limit, offset, before_posted_at } as reqQuery;
+    return {
+        posted_user_pub_id,
+        mentioned_user_pub_id,
+        before,
+        after,
+        limit,
+        body,
+        tag
+    } as reqQuery;
 };
 
 export default async function get(c: Context) {
     const spClSess = c.get('supabaseClientSess') as SupabaseClient | null;
     const spClAnon = mustGetCtx<SupabaseClient>(c, 'supabaseClientAnon');
+    const spClSrv = mustGetCtx<SupabaseClient>(c, 'supabaseClientService');
+    const userJwtInfo = c.get('userJwtInfo') as UserJwtInfo | null;
 
     const rq = parseReqQuery(c);
+    const currentUserId = userJwtInfo?.obj.id;
 
     let query = (spClSess || spClAnon)
         .from('views_user_post')
         .select('*')
         .order('posted_at', { ascending: false });
 
-    if (rq.user_pub_id) {
-        query = query.eq('user_pub_id', rq.user_pub_id);
+    // 投稿者によるフィルタリング
+    if (rq.posted_user_pub_id) {
+        query = query.eq('user_pub_id', rq.posted_user_pub_id);
     }
 
-    if (rq.before_posted_at) {
-        query = query.lt('posted_at', rq.before_posted_at);
+    // メンションされたユーザーによるフィルタリング
+    if (rq.mentioned_user_pub_id) {
+        query = query.contains('mentions', [{ user_pub_id: rq.mentioned_user_pub_id }]);
     }
 
-    query = query.range(rq.offset, rq.offset + rq.limit - 1);
+    // 日時範囲フィルタリング
+    if (rq.before) {
+        query = query.lt('posted_at', rq.before);
+    }
+
+    if (rq.after) {
+        query = query.gt('posted_at', rq.after);
+    }
+
+    // 本文検索
+    if (rq.body) {
+        query = query.ilike('body', `%${rq.body}%`);
+    }
+
+    // タグ検索
+    if (rq.tag) {
+        query = query.contains('tags', [rq.tag]);
+    }
+
+    // 制限数の適用
+    query = query.limit(rq.limit);
 
     const { data, error } = await query;
     if (error) {
         throw new ApiErrorFatal(`failed to fetch posts: ${error.message}`);
     }
 
-    const result = (data ?? [])
-        .filter(row => row.privacy_allowed_posts) // プライバシー権限があるもののみ
-        .map(row => ({
+    const filteredData = (data ?? []).filter((row: any) => row.privacy_allowed_posts);
+
+    // 現在のユーザーのrel_idを取得
+    let currentUserRelId = null;
+    let userLikes: Set<string> = new Set();
+    let userComments: Set<string> = new Set();
+
+    if (currentUserId && spClSess && filteredData.length > 0) {
+        const { data: userRelData } = await spClSess
+            .from('users_master')
+            .select('rel_id')
+            .eq('pub_id', currentUserId)
+            .single();
+
+        currentUserRelId = userRelData?.rel_id;
+
+        if (currentUserRelId && spClSrv) {
+            // 投稿のpub_idからrel_idのマッピングを取得
+            const postIds = filteredData.map((row: any) => row.pub_id);
+            const { data: postRelData } = await spClSrv
+                .from('posts_master')
+                .select('pub_id, rel_id')
+                .in('pub_id', postIds);
+
+            if (postRelData && postRelData.length > 0) {
+                const postRelIds = postRelData.map((post: any) => post.rel_id);
+
+                // 一度にいいね情報を取得
+                const { data: likesData } = await spClSrv
+                    .from('posts_lines_likes')
+                    .select('post_rel_id')
+                    .in('post_rel_id', postRelIds)
+                    .eq('user_rel_id', currentUserRelId);
+
+                // 一度にコメント情報を取得
+                const { data: commentsData } = await spClSrv
+                    .from('comments_master')
+                    .select('post_rel_id')
+                    .in('post_rel_id', postRelIds)
+                    .eq('user_rel_id', currentUserRelId);
+
+                // rel_idからpub_idへのマッピングを作成
+                const relIdToPubId = new Map();
+                postRelData.forEach((post: any) => {
+                    relIdToPubId.set(post.rel_id, post.pub_id);
+                });
+
+                // いいねしたpost_pub_idのセットを作成
+                if (likesData) {
+                    likesData.forEach((like: any) => {
+                        const pubId = relIdToPubId.get(like.post_rel_id);
+                        if (pubId) userLikes.add(pubId);
+                    });
+                }
+
+                // コメントしたpost_pub_idのセットを作成
+                if (commentsData) {
+                    commentsData.forEach((comment: any) => {
+                        const pubId = relIdToPubId.get(comment.post_rel_id);
+                        if (pubId) userComments.add(pubId);
+                    });
+                }
+            }
+        }
+    }
+
+    // 結果をマッピング
+    const result = filteredData.map((row: any) => {
+        return {
             pub_id: row.pub_id,
             posted_user: row.user_summary,
             posted_at: row.posted_at ? convDateForFE(new Date(row.posted_at), precision.SECOND) : null,
@@ -63,9 +168,12 @@ export default async function get(c: Context) {
                 thumb_url: photo.thumb_url_name
             })),
             likes_count: row.likes_count || 0,
+            is_liked_by_current_user: userLikes.has(row.pub_id),
             comments_count: row.comments_count || 0,
+            is_commented_by_current_user: userComments.has(row.pub_id),
             status: row.status_pub_id ? { pub_id: row.status_pub_id } : null
-        }));
+        };
+    });
 
     return c.json(result);
 }
