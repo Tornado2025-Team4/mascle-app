@@ -25,7 +25,7 @@ interface respBody {
         };
     } | null;
     partners: Array<{
-        pub_id: string;// >! これ忘れてる
+        pub_id: string;
         handle: string;
         display_name?: string;
         description?: string;
