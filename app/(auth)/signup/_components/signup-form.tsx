@@ -98,7 +98,7 @@ const SignupForm: React.FC = () => {
 					<p className="text-sm text-gray-600">
 						新しいアカウントを作成して
 						<br />
-						始めましょう
+						仲間探しを始めましょう
 					</p>
 				</div>
 
@@ -152,7 +152,7 @@ const SignupForm: React.FC = () => {
 					disabled={isSubmitting}
 					className="w-full bg-[#2C2C2C] hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
 				>
-					{isSubmitting ? 'アカウント作成中...' : '仲間を見つける'}
+					{isSubmitting ? 'アカウント作成中...' : '仲間を探す'}
 				</Button>
 
 				<div className="text-center pt-4 border-t border-gray-200">

@@ -150,7 +150,7 @@ const SigninForm: React.FC = () => {
 					disabled={isSubmitting}
 					className="w-full bg-[#2C2C2C] hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
 				>
-					{isSubmitting ? 'サインイン中...' : 'サインイン'}
+					{isSubmitting ? 'サインイン中...' : '仲間を探す'}
 				</Button>
 
 				<div className="text-center pt-4 border-t border-gray-200">
