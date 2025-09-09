@@ -20,6 +20,7 @@ interface respBody {
     registered_since?: string
     training_since?: string
     skill_level?: string
+    inited?: boolean
     tags?: Array<{
         pub_id: string
         name: string
@@ -79,6 +80,16 @@ const getdata = async (c: Context, userPubId: string): Promise<respBody> => {
 
     if (!profile) {
         throw new ApiErrorFatal('User not found');
+    }
+
+    const { data: userMaster, error: userMasterErr } = await spClSrv
+        .from('users_master')
+        .select('inited')
+        .eq('pub_id', userPubId)
+        .single();
+
+    if (userMasterErr) {
+        throw new ApiErrorFatal(`Failed to get user master: ${userMasterErr.message}`);
     }
 
     // アイコンの署名URL生成
@@ -176,6 +187,7 @@ const getdata = async (c: Context, userPubId: string): Promise<respBody> => {
         registered_since: profile.registered_since ? convDurationForFE(new Date(profile.registered_since), new Date(), precision.DAY) : undefined,
         training_since: profile.training_since ? convDurationForFE(new Date(profile.training_since), new Date(), precision.DAY) : undefined,
         skill_level: profile.skill_level,
+        inited: userMaster?.inited as boolean || false,
         tags: profile.tags || [],
         intents: profile.intents || [],
         intent_bodyparts: profile.intent_bodyparts || [],
@@ -202,6 +214,17 @@ const getdata_anon = async (c: Context, userAnonPubId: string): Promise<respBody
 
     if (!profile) {
         throw new ApiErrorFatal('User not found');
+    }
+
+    // users_masterからinited状態を取得（anon_pub_idで検索）
+    const { data: userMaster, error: userMasterErr } = await spClSrv
+        .from('users_master')
+        .select('inited')
+        .eq('anon_pub_id', userAnonPubId)
+        .single();
+
+    if (userMasterErr) {
+        throw new ApiErrorFatal(`Failed to get user master: ${userMasterErr.message}`);
     }
 
     // アイコンの署名URL生成
@@ -302,6 +325,7 @@ const getdata_anon = async (c: Context, userAnonPubId: string): Promise<respBody
         registered_since: profile.registered_since ? convDurationForFE(new Date(profile.registered_since), new Date(), precision.DAY) : undefined,
         training_since: profile.training_since ? convDurationForFE(new Date(profile.training_since), new Date(), precision.DAY) : undefined,
         skill_level: profile.skill_level,
+        inited: userMaster?.inited as boolean || false,
         tags: profile.tags || [],
         intents: profile.intents || [],
         intent_bodyparts: profile.intent_bodyparts || [],

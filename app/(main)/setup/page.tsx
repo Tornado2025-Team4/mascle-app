@@ -7,8 +7,6 @@ import { Button } from '@/components/ui/button'
 
 /**
  * 新規ユーザー初回セットアップ
- * - サインアップ直後のユーザーの users_master レコード存在を確認し、なければ作成
- * - プロフィールの最低限の項目を /api/users/me/profile に PATCH
  */
 const SetupPage = () => {
   const supabase = createBrowserClient()
@@ -48,19 +46,25 @@ const SetupPage = () => {
     try {
       setLoading(true)
       setError(null)
+
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('ユーザー情報が取得できませんでした')
+
       const { data: sess2 } = await supabase.auth.getSession()
       const accessToken2 = sess2.session?.access_token
       if (!accessToken2) throw new Error('アクセストークンが取得できませんでした')
-      const res = await fetch(`/api/setup`, {
-        method: 'POST',
+
+      const res = await fetch(`/api/users/me/profile`, {
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${accessToken2}` },
-        body: JSON.stringify({ display_name: displayName })
+        body: JSON.stringify({ display_name: displayName, inited: true })
       })
+
       if (!res.ok) {
         const text = await res.text()
-        console.error('profile patch failed', res.status, text)
         throw new Error(`プロフィールの保存に失敗しました (${res.status}) ${text}`)
       }
+
       router.replace('/')
       router.refresh()
     } catch (e) {

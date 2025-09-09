@@ -13,7 +13,6 @@ import app_posts from './posts';
 import app_dm from './dm';
 import app_hello from './hello';
 import app_auth from './auth';
-import app_setup from './setup';
 
 const apiApp = new Hono().basePath("/api");
 
@@ -34,7 +33,6 @@ apiApp.route('/posts', app_posts);
 apiApp.route('/dm', app_dm);
 apiApp.route('/hello', app_hello);
 apiApp.route('/auth', app_auth);
-apiApp.route('/setup', app_setup);
 
 apiApp.notFound(() => {
     throw new ApiErrorNotFound('API Endpoint');
