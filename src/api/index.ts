@@ -11,7 +11,6 @@ import app_users from './users';
 import app_gymchains from './gymchains';
 import app_posts from './posts';
 import app_dm from './dm';
-import app_hello from './hello';
 import app_auth from './auth';
 
 const apiApp = new Hono().basePath("/api");
@@ -31,7 +30,6 @@ apiApp.route('/gymchains', app_gymchains);
 apiApp.route('/users', app_users);
 apiApp.route('/posts', app_posts);
 apiApp.route('/dm', app_dm);
-apiApp.route('/hello', app_hello);
 apiApp.route('/auth', app_auth);
 
 apiApp.notFound(() => {
