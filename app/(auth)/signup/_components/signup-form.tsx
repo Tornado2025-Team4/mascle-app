@@ -52,6 +52,31 @@ const SignupForm: React.FC = () => {
 			})
 
 			if (error) {
+				if (error.message === 'User already registered') {
+					const { data, error } = await supabase.auth.signInWithPassword({
+						email: form.email.trim(),
+						password: form.password,
+					})
+
+					if (error) {
+						// エラーメッセージを日本語化
+						const errorMessages: Record<string, string> = {
+							'Invalid login credentials': 'メールアドレスまたはパスワードが正しくありません',
+							'Email not confirmed': 'メールアドレスの確認が完了していません',
+							'Too many requests': 'ログイン試行回数が多すぎます。しばらく待ってから再試行してください',
+						}
+						setErrorMessage(errorMessages[error.message] || 'サインインに失敗しました。しばらく待ってから再試行してください。')
+						return
+					}
+
+					if (data.user) {
+						router.replace('/')
+						router.refresh()
+					}
+
+					return
+				}
+
 				// エラーメッセージを日本語化
 				const errorMessages: Record<string, string> = {
 					'User already registered': 'このメールアドレスは既に登録されています',
@@ -63,10 +88,8 @@ const SignupForm: React.FC = () => {
 			}
 
 			if (data.user) {
-				setTimeout(() => {
-					router.replace('/setup')
-					router.refresh()
-				}, 800)
+				router.replace('/setup')
+				router.refresh()
 			}
 		} catch (error) {
 			console.error('Failed to sign up:', error)
