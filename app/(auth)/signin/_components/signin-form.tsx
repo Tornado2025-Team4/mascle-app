@@ -83,15 +83,20 @@ const SigninForm: React.FC = () => {
 		<main className="max-w-md mx-auto">
 			<form
 				onSubmit={handleSubmit}
-				className="space-y-6 border border-gray-300 p-6 rounded-lg mt-[20vh] mb-[20vh] bg-white shadow-sm"
+				className="space-y-6 border border-gray-300 p-6 rounded-lg mt-[15vh] mb-[20vh] bg-white shadow-sm"
 				noValidate
 			>
 				<div className="text-center mb-6">
-					<h1 className="text-2xl font-bold text-gray-900 mb-2">サインイン</h1>
+					<p className="text-2xl font-bold text-gray-900">
+						仲間と繋がる筋トレアプリ
+					</p>
+					<h1 className="text-3xl font-bold text-gray-900 mb-5">
+						Protenにようこそ
+					</h1>
 					<p className="text-sm text-gray-600">
-						おかえりなさい！
+						アカウントにサインインして
 						<br />
-						アカウントにサインインしてください
+						仲間探しを再開しましょう
 					</p>
 				</div>
 
