@@ -6,28 +6,28 @@ import { FiHeart } from "react-icons/fi";
 import { FiNavigation } from "react-icons/fi";
 
 const Header = () => {
-  return (
+  return (/*
     <header className="w-full h-[10vh] flex items-center justify-between px-8 pt-4">
       <Image src="/images/titlelogo.svg" alt="titlelogo" width={90} height={20} />
       <div className="flex items-center gap-5 text-3xl">
         <Link href="/notification"><FiHeart /></Link>
         <Link href="/dm"><FiNavigation /></Link>
       </div>
-    </header>
-    /* >! 取り込むか検討中
-    <header className="w-full h-[10vh] flex items-center justify-between px-8 pt-4 bg-white border-b border-gray-100">
-      <Link href="/" aria-label="ホームに戻る">
+    </header> */
+    <header className="w-full h-[8vh] flex items-center justify-between px-8 pt-4 bg-white border-b border-gray-100">
+      <Link href="/" aria-label="ホームに戻る" className="ml-2">
         <Image
           src="/images/titlelogo.svg"
           alt="Mascle ロゴ"
-          width={90}
-          height={20}
+          width={110}
+          height={1}
+          style={{ aspectRatio: "auto" }}
           priority
           className="h-auto"
         />
       </Link>
       <nav role="navigation" aria-label="ヘッダーナビゲーション">
-        <div className="flex items-center gap-5 text-2xl">
+        <div className="flex items-center gap-5 text-3xl">
           <Link
             href="/notification"
             aria-label="通知"
@@ -45,7 +45,6 @@ const Header = () => {
         </div>
       </nav>
     </header>
-     */
   )
 }
 
