@@ -8,6 +8,14 @@ const nextConfig: NextConfig = {
   images: {
     formats: ['image/webp', 'image/avif'],
     minimumCacheTTL: 60,
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'vlrpessjxwihqkzslstb.supabase.co',
+        port: '',
+        pathname: '/storage/v1/object/**',
+      },
+    ],
   },
 
   // セキュリティヘッダー
