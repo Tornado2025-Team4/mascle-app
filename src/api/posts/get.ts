@@ -5,6 +5,50 @@ import { mustGetCtx } from '../_cmn/get_ctx';
 import { convDateForFE, precision } from '../_cmn/conv_date_for_fe';
 import { UserJwtInfo } from '../_cmn/verify_jwt';
 
+interface UserSummary {
+    pub_id?: string;
+    display_name: string;
+    handle?: string;
+    profile_icon_url?: string;
+}
+
+interface Mention {
+    user_pub_id: string;
+    display_name?: string;
+}
+
+interface Photo {
+    url_name: string;
+    thumb_url_name: string;
+}
+
+interface PostRow {
+    pub_id: string;
+    user_summary: UserSummary;
+    posted_at: string;
+    body: string;
+    mentions: Mention[];
+    tags: string[];
+    photos: Photo[];
+    likes_count: number;
+    comments_count: number;
+    status_pub_id?: string;
+    privacy_allowed_posts: boolean;
+}
+
+interface PostRelation {
+    pub_id: string;
+    rel_id: string;
+}
+
+interface LikeData {
+    post_rel_id: string;
+}
+
+interface CommentData {
+    post_rel_id: string;
+}
+
 interface reqQuery {
     posted_user_pub_id?: string;
     mentioned_user_pub_id?: string;
@@ -88,12 +132,12 @@ export default async function get(c: Context) {
         throw new ApiErrorFatal(`failed to fetch posts: ${error.message}`);
     }
 
-    const filteredData = (data ?? []).filter((row: any) => row.privacy_allowed_posts);
+    const filteredData = (data ?? []).filter((row: PostRow) => row.privacy_allowed_posts);
 
     // 現在のユーザーのrel_idを取得
     let currentUserRelId = null;
-    let userLikes: Set<string> = new Set();
-    let userComments: Set<string> = new Set();
+    const userLikes: Set<string> = new Set();
+    const userComments: Set<string> = new Set();
 
     if (currentUserId && spClSess && filteredData.length > 0) {
         const { data: userRelData } = await spClSess
@@ -106,14 +150,14 @@ export default async function get(c: Context) {
 
         if (currentUserRelId && spClSrv) {
             // 投稿のpub_idからrel_idのマッピングを取得
-            const postIds = filteredData.map((row: any) => row.pub_id);
+            const postIds = filteredData.map((row: PostRow) => row.pub_id);
             const { data: postRelData } = await spClSrv
                 .from('posts_master')
                 .select('pub_id, rel_id')
                 .in('pub_id', postIds);
 
             if (postRelData && postRelData.length > 0) {
-                const postRelIds = postRelData.map((post: any) => post.rel_id);
+                const postRelIds = postRelData.map((post: PostRelation) => post.rel_id);
 
                 // 一度にいいね情報を取得
                 const { data: likesData } = await spClSrv
@@ -131,13 +175,13 @@ export default async function get(c: Context) {
 
                 // rel_idからpub_idへのマッピングを作成
                 const relIdToPubId = new Map();
-                postRelData.forEach((post: any) => {
+                postRelData.forEach((post: PostRelation) => {
                     relIdToPubId.set(post.rel_id, post.pub_id);
                 });
 
                 // いいねしたpost_pub_idのセットを作成
                 if (likesData) {
-                    likesData.forEach((like: any) => {
+                    likesData.forEach((like: LikeData) => {
                         const pubId = relIdToPubId.get(like.post_rel_id);
                         if (pubId) userLikes.add(pubId);
                     });
@@ -145,7 +189,7 @@ export default async function get(c: Context) {
 
                 // コメントしたpost_pub_idのセットを作成
                 if (commentsData) {
-                    commentsData.forEach((comment: any) => {
+                    commentsData.forEach((comment: CommentData) => {
                         const pubId = relIdToPubId.get(comment.post_rel_id);
                         if (pubId) userComments.add(pubId);
                     });
@@ -155,7 +199,7 @@ export default async function get(c: Context) {
     }
 
     // 結果をマッピング
-    const result = filteredData.map((row: any) => {
+    const result = filteredData.map((row: PostRow) => {
         return {
             pub_id: row.pub_id,
             posted_user: row.user_summary,
@@ -163,7 +207,7 @@ export default async function get(c: Context) {
             body: row.body,
             mentions: row.mentions || [],
             tags: row.tags || [],
-            photos: (row.photos || []).map((photo: { url_name: string; thumb_url_name: string }) => ({
+            photos: (row.photos || []).map((photo: Photo) => ({
                 url: photo.url_name,
                 thumb_url: photo.thumb_url_name
             })),
