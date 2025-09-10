@@ -4,7 +4,6 @@ import { mustGetCtx } from '../../../_cmn/get_ctx';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { UserIdInfo } from './../_cmn/userid_resolve';
 import { userIdPub2Rel } from '@/src/api/_cmn/userid_pub2rel';
-import { isValidISODate } from '@/src/api/_cmn/conv_date_for_fe';
 
 interface reqBody {
     display_name?: string;
@@ -47,8 +46,11 @@ export default async function patch(c: Context) {
             throw new ApiErrorBadRequest("Display name too long");
         }
 
-        if (updateData.birth_date && !isValidISODate(updateData.birth_date)) {
-            throw new ApiErrorBadRequest("Invalid birth date");
+        if (updateData.birth_date) {
+            const birthDate = new Date(updateData.birth_date);
+            if (isNaN(birthDate.getTime())) {
+                throw new ApiErrorBadRequest("Invalid birth date");
+            }
         }
 
         if (updateData.gender && !['male',
@@ -58,8 +60,11 @@ export default async function patch(c: Context) {
             throw new ApiErrorBadRequest("Invalid gender");
         }
 
-        if (updateData.training_since && !isValidISODate(updateData.training_since)) {
-            throw new ApiErrorBadRequest("Invalid training since date");
+        if (updateData.training_since) {
+            const trainingSince = new Date(updateData.training_since);
+            if (isNaN(trainingSince.getTime())) {
+                throw new ApiErrorBadRequest("Invalid training since date");
+            }
         }
 
         if (Object.keys(updateData).length > 0) {
