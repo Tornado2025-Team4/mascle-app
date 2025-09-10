@@ -1,7 +1,8 @@
 import { Context } from 'hono';
-import { SupabaseClient } from '@supabase/supabase-js';
-import { ApiErrorFatal, ApiErrorBadRequest } from '../_cmn/error';
+import { mustGetSpClSessOrAnon } from '../_cmn/get_supaclient';
 import { mustGetCtx } from '../_cmn/get_ctx';
+import { ApiErrorFatal } from '../_cmn/error';
+import { SupabaseClient } from '@supabase/supabase-js';
 
 interface Tag {
     name: string;
@@ -25,7 +26,8 @@ interface UserRow {
     handle?: string;
     display_name: string;
     description?: string;
-    profile_icon_url?: string;
+    icon_rel_id?: string;
+    icon_name?: string;
     generation?: number;
     gender?: string;
     training_since?: string;
@@ -36,7 +38,7 @@ interface UserRow {
     privacy_allowed_display_name: boolean;
 }
 
-interface reqQuery {
+type reqQuery = {
     handle_id?: string;
     display_name?: string;
     description?: string;
@@ -44,6 +46,7 @@ interface reqQuery {
     generation?: number;
     gender?: string;
     training_since?: string;
+    training_since_condition?: string;
     intents?: string;
     intent_bodyparts?: string;
     belonging_gyms?: string;
@@ -58,6 +61,7 @@ const parseReqQuery = (c: Context): reqQuery => {
     const generationRaw = c.req.query('generation');
     const gender = c.req.query('gender');
     const training_since = c.req.query('training_since');
+    const training_since_condition = c.req.query('training_since_condition');
     const intents = c.req.query('intents');
     const intent_bodyparts = c.req.query('intent_bodyparts');
     const belonging_gyms = c.req.query('belonging_gyms');
@@ -74,6 +78,7 @@ const parseReqQuery = (c: Context): reqQuery => {
         generation,
         gender,
         training_since,
+        training_since_condition,
         intents,
         intent_bodyparts,
         belonging_gyms,
@@ -82,78 +87,162 @@ const parseReqQuery = (c: Context): reqQuery => {
 };
 
 export default async function get(c: Context) {
-    const spClSess = c.get('supabaseClientSess') as SupabaseClient | null;
-    const spClAnon = mustGetCtx<SupabaseClient>(c, 'supabaseClientAnon');
+    const { spCl } = mustGetSpClSessOrAnon(c);
+    const spClSrv = mustGetCtx<SupabaseClient>(c, 'supabaseClientService');
 
     const rq = parseReqQuery(c);
 
-    // 検索条件が何も指定されていない場合はエラー
-    if (!rq.handle_id && !rq.display_name && !rq.description && !rq.tags &&
-        !rq.generation && !rq.gender && !rq.training_since && !rq.intents &&
-        !rq.intent_bodyparts && !rq.belonging_gyms) {
-        throw new ApiErrorBadRequest('At least one search parameter is required');
-    }
+    // まず、関連テーブルでのフィルタリングが必要かチェック
+    let userRelIds: number[] | null = null;
 
-    // 認証状態に応じてビューを選択
-    const viewName = spClSess ? 'views_user_profile' : 'views_user_profile_anon';
-    const client = spClSess || spClAnon;
+    // intents検索：関連テーブルで検索（サービスクライアント使用）
+    if (rq.intents && rq.intents !== 'all') {
+        const { data: intentUsers } = await spClSrv
+            .from('users_lines_intents')
+            .select('user_rel_id, intents_master!inner(intent)')
+            .eq('intents_master.intent', rq.intents);
 
-    let query = client
-        .from(viewName)
-        .select('*');
-
-    // handle_id: 完全マッチ
-    if (rq.handle_id) {
-        if (spClSess) {
-            query = query.eq('handle', rq.handle_id);
+        if (intentUsers && intentUsers.length > 0) {
+            userRelIds = intentUsers.map(u => u.user_rel_id);
         } else {
-            // 匿名ユーザーはhandleで検索できないため、anon_pub_idで検索
-            // ただし、handle_idが渡された場合は実際にはpub_idまたはanon_pub_idとして扱う
-            query = query.eq('anon_pub_id', rq.handle_id);
+            // 該当するユーザーがいない場合は空の結果を返す
+            return c.json([]);
         }
     }
 
-    // display_name: 部分マッチ（プライバシー権限がある場合のみ）
+    // intent_bodyparts検索：関連テーブルで検索（サービスクライアント使用）
+    if (rq.intent_bodyparts && rq.intent_bodyparts !== 'all') {
+        const { data: bodypartUsers } = await spClSrv
+            .from('users_lines_intent_bodyparts')
+            .select('user_rel_id, bodyparts_master!inner(bodypart)')
+            .eq('bodyparts_master.bodypart', rq.intent_bodyparts);
+
+        if (bodypartUsers && bodypartUsers.length > 0) {
+            const bodypartUserRelIds = bodypartUsers.map(u => u.user_rel_id);
+            userRelIds = userRelIds ? userRelIds.filter(id => bodypartUserRelIds.includes(id)) : bodypartUserRelIds;
+        } else {
+            return c.json([]);
+        }
+    }
+
+    // tags検索：関連テーブルで検索（サービスクライアント使用）
+    if (rq.tags) {
+        // タグ名から#プレフィックスを除去
+        const tagName = rq.tags.startsWith('#') ? rq.tags.slice(1) : rq.tags;
+        const { data: tagUsers, error: tagError } = await spClSrv
+            .from('users_lines_tags')
+            .select('user_rel_id, tags_master!inner(name)')
+            .eq('tags_master.name', tagName);
+
+        if (tagError) {
+            throw new ApiErrorFatal(`Tag search error: ${tagError.message}`);
+        }
+
+        if (tagUsers && tagUsers.length > 0) {
+            const tagUserRelIds = tagUsers.map(u => u.user_rel_id);
+            userRelIds = userRelIds ? userRelIds.filter(id => tagUserRelIds.includes(id)) : tagUserRelIds;
+        } else {
+            return c.json([]);
+        }
+    }
+
+
+    // belonging_gyms検索：関連テーブルで検索（サービスクライアント使用）
+    if (rq.belonging_gyms) {
+        const { data: gymUsers } = await spClSrv
+            .from('users_lines_belonging_gyms')
+            .select('user_rel_id, gyms_master!inner(name)')
+            .eq('gyms_master.name', rq.belonging_gyms);
+
+        if (gymUsers && gymUsers.length > 0) {
+            const gymUserRelIds = gymUsers.map(u => u.user_rel_id);
+            userRelIds = userRelIds ? userRelIds.filter(id => gymUserRelIds.includes(id)) : gymUserRelIds;
+        } else {
+            return c.json([]);
+        }
+    }
+
+    // views_user_profileからの検索
+    let query = spCl
+        .from('views_user_profile')
+        .select('*');
+
+    // 関連テーブルでフィルタリングした結果があれば適用
+    if (userRelIds !== null) {
+        if (userRelIds.length === 0) {
+            return c.json([]);
+        }
+        // ビューではuser_rel_idではなくpub_idを使うため、users_masterテーブルで変換が必要（サービスクライアント使用）
+        const { data: userMasters, error: masterError } = await spClSrv
+            .from('users_master')
+            .select('pub_id')
+            .in('rel_id', userRelIds);
+
+        if (masterError) {
+            throw new ApiErrorFatal(`User master conversion error: ${masterError.message}`);
+        }
+
+        if (userMasters && userMasters.length > 0) {
+            const pubIds = userMasters.map(u => u.pub_id);
+            query = query.in('pub_id', pubIds);
+        } else {
+            return c.json([]);
+        }
+    }
+
+    // handle_id: 完全マッチ
+    if (rq.handle_id) {
+        query = query.eq('handle', rq.handle_id);
+    }
+
+    // display_name: 部分マッチ
     if (rq.display_name) {
         query = query.ilike('display_name', `%${rq.display_name}%`);
     }
 
-    // description: 部分マッチ（プライバシー権限がある場合のみ）
+    // description: 部分マッチ
     if (rq.description) {
         query = query.ilike('description', `%${rq.description}%`);
     }
 
-    // generation: 完全マッチ
-    if (rq.generation !== undefined) {
+    // generation: 完全マッチ（"all"でない場合のみ適用）
+    if (rq.generation !== undefined && rq.generation.toString() !== 'all') {
         query = query.eq('generation', rq.generation);
     }
 
-    // gender: 完全マッチ
-    if (rq.gender) {
+    // gender: 完全マッチ（"all"でない場合のみ適用）
+    if (rq.gender && rq.gender !== 'all') {
         query = query.eq('gender', rq.gender);
     }
 
-    // training_since: 完全マッチ
+    // training_since: 日付比較への変換
     if (rq.training_since) {
-        query = query.eq('training_since', rq.training_since);
-    }
+        // "3年2ヶ月" などの文字列から日付を計算
+        const yearsMatch = rq.training_since.match(/(\d+)年/);
+        const monthsMatch = rq.training_since.match(/(\d+)ヶ月/);
 
-    // tags, intents, intent_bodyparts, belonging_gymsはJSONB配列での検索が必要
-    // これらは複雑な検索になるため、基本的な実装のみ
-    if (rq.tags) {
-        query = query.contains('tags', `[{"name": "${rq.tags}"}]`);
-    }
+        let years = 0;
+        let months = 0;
 
-    if (rq.intents) {
-        query = query.contains('intents', `[{"intent": "${rq.intents}"}]`);
-    }
+        if (yearsMatch) years = parseInt(yearsMatch[1]);
+        if (monthsMatch) months = parseInt(monthsMatch[1]);
 
-    if (rq.intent_bodyparts) {
-        query = query.contains('intent_bodyparts', `[{"bodypart": "${rq.intent_bodyparts}"}]`);
-    }
+        if (years > 0 || months > 0) {
+            // 現在日付から指定された年月数を引いた日付を計算
+            const baseDate = new Date();
+            baseDate.setFullYear(baseDate.getFullYear() - years);
+            baseDate.setMonth(baseDate.getMonth() - months);
+            const targetDate = baseDate.toISOString().split('T')[0]; // YYYY-MM-DD形式
 
-    if (rq.belonging_gyms) {
-        query = query.contains('belonging_gyms', `[{"name": "${rq.belonging_gyms}"}]`);
+            const condition = rq.training_since_condition || 'gte';
+            if (condition === 'gte') {
+                // 指定年月以上の経験 = その日付以前に開始
+                query = query.lte('training_since', targetDate);
+            } else if (condition === 'lte') {
+                // 指定年月以下の経験 = その日付以降に開始
+                query = query.gte('training_since', targetDate);
+            }
+        }
     }
 
     // 結果を制限
@@ -167,26 +256,46 @@ export default async function get(c: Context) {
     // レスポンス形式に変換
     const result = (data ?? [])
         .filter((row: UserRow) => {
-            // 認証済みユーザーの場合は全て、匿名の場合はプライバシー設定に従う
-            if (spClSess) return true;
-            // 匿名ビューの場合、completely_hiddenでないもののみ
             return row.privacy_allowed_display_name !== false;
         })
-        .map((row: UserRow) => ({
-            pub_id: spClSess ? row.pub_id : undefined,
-            anon_pub_id: spClSess ? undefined : row.anon_pub_id,
-            handle: spClSess ? row.handle : undefined,
-            display_name: row.display_name || row.handle || 'ユーザー',
-            description: row.description,
-            profile_icon_url: row.profile_icon_url,
-            generation: row.generation,
-            gender: row.gender,
-            training_since: row.training_since,
-            tags: row.tags || [],
-            intents: row.intents || [],
-            intent_bodyparts: row.intent_bodyparts || [],
-            belonging_gyms: row.belonging_gyms || []
-        }));
+        .map(async (row: UserRow) => {
+            let profile_icon_url = undefined;
 
-    return c.json(result);
+            // アイコンの署名付きURL生成
+            if (row.icon_rel_id && row.icon_name) {
+                try {
+                    const { data: signedUrlData, error: signedUrlError } = await spClSrv.storage
+                        .from('users_icons')
+                        .createSignedUrl(row.icon_name, 60 * 60);
+
+                    if (signedUrlError || !signedUrlData?.signedUrl) {
+                        console.error('Failed to create signed URL for user icon:', signedUrlError?.message || 'unknown error');
+                    } else {
+                        profile_icon_url = signedUrlData.signedUrl;
+                    }
+                } catch (e) {
+                    console.error('Failed to create signed URL for user icon:', e);
+                }
+            }
+
+            return {
+                pub_id: row.pub_id,
+                handle: row.handle,
+                display_name: row.display_name,
+                description: row.description,
+                profile_icon_url,
+                generation: row.generation,
+                gender: row.gender,
+                training_since: row.training_since,
+                tags: row.tags || [],
+                intents: row.intents || [],
+                intent_bodyparts: row.intent_bodyparts || [],
+                belonging_gyms: row.belonging_gyms || []
+            };
+        });
+
+    // Promise.allで全ての非同期処理を解決
+    const resolvedResult = await Promise.all(result);
+
+    return c.json(resolvedResult);
 }
