@@ -559,7 +559,13 @@ export const SetProfile: React.FC<SetProfileProps> = ({ initialProfile, userId, 
                                     value={profile.birthday?.year || ''}
                                     onChange={e => {
                                         const value = e.target.value.replace(/[^0-9]/g, '');
-                                        handleChange('birthday', { ...profile.birthday, year: value });
+                                        const currentYear = new Date().getFullYear();
+                                        const numValue = parseInt(value, 10);
+
+                                        // 値が空、または有効な年の範囲内の場合のみ更新
+                                        if (value === '' || (numValue >= 1900 && numValue <= currentYear)) {
+                                            handleChange('birthday', { ...profile.birthday, year: value });
+                                        }
                                     }}
                                     placeholder="年"
                                     style={{

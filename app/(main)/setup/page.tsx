@@ -80,7 +80,13 @@ const SetupPage = () => {
 
       // 日付の検証と変換を行うヘルパー関数
       const formatBirthDate = (birthday?: { year?: string; month?: string; day?: string }) => {
+        // 空の値や不完全な日付の場合はnullを返す
         if (!birthday?.year || !birthday?.month || !birthday?.day) {
+          return null;
+        }
+
+        // 空文字列の場合もnullを返す
+        if (birthday.year.trim() === '' || birthday.month.trim() === '' || birthday.day.trim() === '') {
           return null;
         }
 
@@ -118,7 +124,13 @@ const SetupPage = () => {
       };
 
       const formatTrainingSince = (trainingSince?: { year?: string; month?: string }) => {
+        // 空の値や不完全な日付の場合はnullを返す
         if (!trainingSince?.year || !trainingSince?.month) {
+          return null;
+        }
+
+        // 空文字列の場合もnullを返す
+        if (trainingSince.year.trim() === '' || trainingSince.month.trim() === '') {
           return null;
         }
 
@@ -157,14 +169,35 @@ const SetupPage = () => {
         formattedData.icon = await convertFileToBase64(profileData.iconFile);
       }
 
-      // undefinedやnullの値を除外
+      // undefinedやnullや空文字列の値を除外
       Object.keys(formattedData).forEach(key => {
-        if (formattedData[key] === undefined || formattedData[key] === null) {
+        const value = formattedData[key];
+        if (value === undefined || value === null ||
+          (typeof value === 'string' && value.trim() === '')) {
           delete formattedData[key];
         }
       });
 
       console.log('Sending profile data:', formattedData);
+
+      // ハンドルを先に更新（@を付けて送信）
+      if (profileData.handle && profileData.handle.trim() !== '') {
+        const handleWithAt = profileData.handle.startsWith('@') ? profileData.handle : `@${profileData.handle}`;
+        const handleResponse = await fetch(`/api/users/${user.id}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ handle: handleWithAt })
+        });
+
+        if (!handleResponse.ok) {
+          const errorData = await handleResponse.json();
+          console.error('Handle update failed:', errorData);
+          alert(`ハンドル更新に失敗しました: ${errorData.message || 'Unknown error'}`);
+          return;
+        }
+      }
 
       const response = await fetch(`/api/users/${user.id}/profile`, {
         method: 'PATCH',
