@@ -43,7 +43,7 @@ export default async function patch(c: Context) {
         if (body.gender !== undefined) updateData.gender = body.gender;
         if (body.training_since !== undefined) updateData.training_since = body.training_since;
 
-        if (100 < updateData.display_name.length) {
+        if (100 < updateData.display_name?.length) {
             throw new ApiErrorBadRequest("Display name too long");
         }
 

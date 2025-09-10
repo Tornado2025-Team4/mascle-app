@@ -42,48 +42,127 @@ const SetupPage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const handleProfileSubmit = async (profileData: ProfileData) => {
+  const handleProfileSubmit = async (profileData: ProfileData & { iconFile?: File | null }) => {
     if (!user?.id) return;
 
     try {
       setLoading(true);
 
-      const formattedData = {
-        ...profileData,
-        birth_date: profileData.birthday &&
-          profileData.birthday.year &&
-          profileData.birthday.month &&
-          profileData.birthday.day
-          ? `${profileData.birthday.year}-${profileData.birthday.month.padStart(2, '0')}-${profileData.birthday.day.padStart(2, '0')}`
-          : null,
-        training_since: profileData.trainingSince &&
-          profileData.trainingSince.year &&
-          profileData.trainingSince.month
-          ? `${profileData.trainingSince.year}-${profileData.trainingSince.month.padStart(2, '0')}-01`
-          : null,
-        intent_names: profileData.intents || [],
-        bodypart_names: profileData.bodyParts || [],
-        tag_names: profileData.tags || []
+      // ファイルをBase64に変換する関数
+      const convertFileToBase64 = (file: File): Promise<string> => {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
       };
 
-      // 日付の妥当性チェック
-      if (formattedData.birth_date) {
-        const birthDate = new Date(formattedData.birth_date);
-        if (isNaN(birthDate.getTime())) {
-          console.error('Invalid birth date format:', formattedData.birth_date);
-          alert('生年月日の形式が正しくありません');
-          return;
+      // 名前からIDへの変換ヘルパー関数
+      const convertNamesToIds = async (endpoint: string, names: string[]): Promise<string[]> => {
+        if (names.length === 0) return [];
+
+        try {
+          const response = await fetch(`${endpoint}?limit=1000`);
+          if (response.ok) {
+            const data = await response.json();
+            // APIレスポンスの形式に応じて調整
+            const nameToIdMap = Object.fromEntries(
+              Object.entries(data).map(([id, name]) => [name, id])
+            );
+            return names.map(name => nameToIdMap[name]).filter(Boolean);
+          }
+        } catch (error) {
+          console.error(`Failed to convert names to IDs for ${endpoint}:`, error);
         }
+        return [];
+      };
+
+      // 日付の検証と変換を行うヘルパー関数
+      const formatBirthDate = (birthday?: { year?: string; month?: string; day?: string }) => {
+        if (!birthday?.year || !birthday?.month || !birthday?.day) {
+          return null;
+        }
+
+        const year = parseInt(birthday.year, 10);
+        const month = parseInt(birthday.month, 10);
+        const day = parseInt(birthday.day, 10);
+
+        // 基本的な数値チェック
+        if (isNaN(year) || isNaN(month) || isNaN(day)) {
+          return null;
+        }
+
+        // 範囲チェック
+        if (year < 1900 || year > new Date().getFullYear()) {
+          return null;
+        }
+        if (month < 1 || month > 12) {
+          return null;
+        }
+        if (day < 1 || day > 31) {
+          return null;
+        }
+
+        const dateStr = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+
+        // 実際に有効な日付かチェック
+        const testDate = new Date(dateStr);
+        if (testDate.getFullYear() !== year ||
+          testDate.getMonth() + 1 !== month ||
+          testDate.getDate() !== day) {
+          return null;
+        }
+
+        return dateStr;
+      };
+
+      const formatTrainingSince = (trainingSince?: { year?: string; month?: string }) => {
+        if (!trainingSince?.year || !trainingSince?.month) {
+          return null;
+        }
+
+        const year = parseInt(trainingSince.year, 10);
+        const month = parseInt(trainingSince.month, 10);
+
+        // 基本的な数値チェック
+        if (isNaN(year) || isNaN(month)) {
+          return null;
+        }
+
+        // 範囲チェック
+        if (year < 1900 || year > new Date().getFullYear()) {
+          return null;
+        }
+        if (month < 1 || month > 12) {
+          return null;
+        }
+
+        return `${year}-${month.toString().padStart(2, '0')}-01`;
+      };
+
+      const formattedData: Record<string, unknown> = {
+        display_name: profileData.displayName,
+        description: profileData.bio,
+        birth_date: formatBirthDate(profileData.birthday),
+        gender: profileData.gender,
+        training_since: formatTrainingSince(profileData.trainingSince),
+        tags: await convertNamesToIds('/api/tags', profileData.tags || []),
+        intents: await convertNamesToIds('/api/intents', profileData.intents || []),
+        intent_bodyparts: await convertNamesToIds('/api/bodyparts', profileData.bodyParts || [])
+      };
+
+      // アイコンがある場合のみ追加
+      if (profileData.iconFile) {
+        formattedData.icon = await convertFileToBase64(profileData.iconFile);
       }
 
-      if (formattedData.training_since) {
-        const trainingDate = new Date(formattedData.training_since);
-        if (isNaN(trainingDate.getTime())) {
-          console.error('Invalid training since date format:', formattedData.training_since);
-          alert('トレーニング開始日の形式が正しくありません');
-          return;
+      // undefinedやnullの値を除外
+      Object.keys(formattedData).forEach(key => {
+        if (formattedData[key] === undefined || formattedData[key] === null) {
+          delete formattedData[key];
         }
-      }
+      });
 
       console.log('Sending profile data:', formattedData);
 

@@ -557,7 +557,10 @@ export const SetProfile: React.FC<SetProfileProps> = ({ initialProfile, userId, 
                                 <input
                                     type="text"
                                     value={profile.birthday?.year || ''}
-                                    onChange={e => handleChange('birthday', { ...profile.birthday, year: e.target.value })}
+                                    onChange={e => {
+                                        const value = e.target.value.replace(/[^0-9]/g, '');
+                                        handleChange('birthday', { ...profile.birthday, year: value });
+                                    }}
                                     placeholder="年"
                                     style={{
                                         width: 60,
@@ -573,7 +576,13 @@ export const SetProfile: React.FC<SetProfileProps> = ({ initialProfile, userId, 
                                 <input
                                     type="text"
                                     value={profile.birthday?.month || ''}
-                                    onChange={e => handleChange('birthday', { ...profile.birthday, month: e.target.value })}
+                                    onChange={e => {
+                                        const value = e.target.value.replace(/[^0-9]/g, '');
+                                        const numValue = parseInt(value, 10);
+                                        if (value === '' || (numValue >= 1 && numValue <= 12)) {
+                                            handleChange('birthday', { ...profile.birthday, month: value });
+                                        }
+                                    }}
                                     placeholder="月"
                                     style={{
                                         width: 40,
@@ -589,7 +598,13 @@ export const SetProfile: React.FC<SetProfileProps> = ({ initialProfile, userId, 
                                 <input
                                     type="text"
                                     value={profile.birthday?.day || ''}
-                                    onChange={e => handleChange('birthday', { ...profile.birthday, day: e.target.value })}
+                                    onChange={e => {
+                                        const value = e.target.value.replace(/[^0-9]/g, '');
+                                        const numValue = parseInt(value, 10);
+                                        if (value === '' || (numValue >= 1 && numValue <= 31)) {
+                                            handleChange('birthday', { ...profile.birthday, day: value });
+                                        }
+                                    }}
                                     placeholder="日"
                                     style={{
                                         width: 40,
@@ -630,7 +645,10 @@ export const SetProfile: React.FC<SetProfileProps> = ({ initialProfile, userId, 
                             <input
                                 type="text"
                                 value={profile.trainingSince?.year || ''}
-                                onChange={e => handleChange('trainingSince', { ...profile.trainingSince, year: e.target.value })}
+                                onChange={e => {
+                                    const value = e.target.value.replace(/[^0-9]/g, '');
+                                    handleChange('trainingSince', { ...profile.trainingSince, year: value });
+                                }}
                                 placeholder="年"
                                 style={{
                                     width: 60,
@@ -646,7 +664,13 @@ export const SetProfile: React.FC<SetProfileProps> = ({ initialProfile, userId, 
                             <input
                                 type="text"
                                 value={profile.trainingSince?.month || ''}
-                                onChange={e => handleChange('trainingSince', { ...profile.trainingSince, month: e.target.value })}
+                                onChange={e => {
+                                    const value = e.target.value.replace(/[^0-9]/g, '');
+                                    const numValue = parseInt(value, 10);
+                                    if (value === '' || (numValue >= 1 && numValue <= 12)) {
+                                        handleChange('trainingSince', { ...profile.trainingSince, month: value });
+                                    }
+                                }}
                                 placeholder="月"
                                 style={{
                                     width: 40,
