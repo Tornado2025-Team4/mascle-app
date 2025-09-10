@@ -1,4 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
+import GymSelector from './gym-selector';
 
 export type ProfileData = {
     iconUrl?: string;
@@ -11,6 +12,15 @@ export type ProfileData = {
     trainingSince?: { year?: string; month?: string };
     intents?: string[];
     bodyParts?: string[];
+    gyms?: Gym[];
+};
+
+export type Gym = {
+    pub_id: string;
+    name: string;
+    chain_name?: string;
+    latitude?: number;
+    longitude?: number;
 };
 
 export type SetProfileProps = {
@@ -70,6 +80,7 @@ export const SetProfile: React.FC<SetProfileProps> = ({ initialProfile, userId, 
         trainingSince: {},
         intents: [],
         bodyParts: [],
+        gyms: [],
     });
     const [iconFile, setIconFile] = useState<File | null>(null);
     const [iconPreview, setIconPreview] = useState(initialProfile?.iconUrl || '');
@@ -80,6 +91,7 @@ export const SetProfile: React.FC<SetProfileProps> = ({ initialProfile, userId, 
     const [bodyPartSuggestions, setBodyPartSuggestions] = useState<Record<string, string>>({});
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isLoading, setIsLoading] = useState(!!userId);
+    const [isGymSelectorOpen, setIsGymSelectorOpen] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     // 初期データの取得
@@ -105,6 +117,19 @@ export const SetProfile: React.FC<SetProfileProps> = ({ initialProfile, userId, 
                         trainingSince: data.training_since ? parseTrainingSince(data.training_since) : {},
                         intents: data.intents?.map((intent: { pub_id: string; intent: string }) => intent.intent) || [],
                         bodyParts: data.intent_bodyparts?.map((bodypart: { pub_id: string; bodypart: string }) => bodypart.bodypart) || [],
+                        gyms: data.belonging_gyms?.map((gym: {
+                            pub_id: string;
+                            name: string;
+                            gymchain?: { pub_id: string; name: string; icon_url?: string };
+                            latitude?: number;
+                            longitude?: number;
+                        }) => ({
+                            pub_id: gym.pub_id,
+                            name: gym.name,
+                            chain_name: gym.gymchain?.name || null, // gymchain.nameを使用
+                            latitude: gym.latitude,
+                            longitude: gym.longitude
+                        })) || [],
                     };
 
                     setProfile(convertedProfile);
@@ -160,7 +185,7 @@ export const SetProfile: React.FC<SetProfileProps> = ({ initialProfile, userId, 
     useEffect(() => {
         const initialProfileForComparison = initialProfile || {
             handle: '', displayName: '', bio: '', tags: [], birthday: {},
-            gender: undefined, trainingSince: {}, intents: [], bodyParts: []
+            gender: undefined, trainingSince: {}, intents: [], bodyParts: [], gyms: []
         };
         setIsChanged(JSON.stringify(profile) !== JSON.stringify(initialProfileForComparison) || !!iconFile);
     }, [profile, iconFile, initialProfile]);    // アイコン画像選択
@@ -283,6 +308,30 @@ export const SetProfile: React.FC<SetProfileProps> = ({ initialProfile, userId, 
         setProfile((prev) => ({ ...prev, tags: (prev.tags || []).filter(t => t !== tagNameOrId) }));
     };
 
+    // ジム関連のハンドラー
+    const handleAddGym = (gym: Gym) => {
+        setProfile((prev) => {
+            // 重複チェック：同じpub_idのジムが既に存在するかチェック
+            const existingGym = (prev.gyms || []).find(g => g.pub_id === gym.pub_id);
+            if (existingGym) {
+                console.warn('Gym already exists:', gym.pub_id);
+                return prev; // 既に存在する場合は追加しない
+            }
+            return {
+                ...prev,
+                gyms: [...(prev.gyms || []), gym]
+            };
+        });
+        setIsGymSelectorOpen(false);
+    };
+
+    const handleRemoveGym = (gymId: string) => {
+        setProfile((prev) => ({
+            ...prev,
+            gyms: (prev.gyms || []).filter(g => g.pub_id !== gymId)
+        }));
+    };
+
     // 適用ボタン
     const handleSubmit = async () => {
         setIsSubmitting(true);
@@ -309,8 +358,6 @@ export const SetProfile: React.FC<SetProfileProps> = ({ initialProfile, userId, 
                 </div>
             ) : (
                 <>
-                    {/* >! 日付周りでエラー起きてるかも */}
-                    {/* バックは全部ISOでいいかも */}
                     <div style={{ display: 'flex', alignItems: 'flex-start', gap: 24, marginBottom: 32 }}>
                         <div style={{ position: 'relative' }}>
                             {iconPreview ? (
@@ -808,8 +855,116 @@ export const SetProfile: React.FC<SetProfileProps> = ({ initialProfile, userId, 
                             </div>
                         </div>
                     </div>
+
+                    {/* よく行くジム */}
+                    <div style={{ marginTop: 28 }}>
+                        <div style={{ fontWeight: 600, marginBottom: 12, color: '#374151' }}>よく行くジム</div>
+
+                        {/* 設定済みのジム一覧 */}
+                        <div style={{ marginBottom: 16 }}>
+                            {(profile.gyms || []).map(gym => (
+                                <div
+                                    key={gym.pub_id}
+                                    style={{
+                                        display: 'flex',
+                                        justifyContent: 'space-between',
+                                        alignItems: 'center',
+                                        padding: '12px 16px',
+                                        background: '#f8fafc',
+                                        borderRadius: 8,
+                                        border: '1px solid #e2e8f0',
+                                        marginBottom: 8
+                                    }}
+                                >
+                                    <div>
+                                        <div style={{ fontWeight: 500, fontSize: 14 }}>
+                                            {gym.chain_name ? `${gym.chain_name} - ${gym.name}` : gym.name}
+                                        </div>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => handleRemoveGym(gym.pub_id)}
+                                        style={{
+                                            background: 'none',
+                                            border: 'none',
+                                            color: '#94a3b8',
+                                            cursor: 'pointer',
+                                            fontSize: 18,
+                                            width: 24,
+                                            height: 24,
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            borderRadius: '50%',
+                                            padding: 0
+                                        }}
+                                        onMouseOver={(e) => {
+                                            e.currentTarget.style.color = '#ef4444';
+                                            e.currentTarget.style.background = '#fee2e2';
+                                        }}
+                                        onMouseOut={(e) => {
+                                            e.currentTarget.style.color = '#94a3b8';
+                                            e.currentTarget.style.background = 'none';
+                                        }}
+                                    >
+                                        ×
+                                    </button>
+                                </div>
+                            ))}
+
+                            {(profile.gyms || []).length === 0 && (
+                                <div style={{
+                                    padding: '20px',
+                                    textAlign: 'center',
+                                    color: '#64748b',
+                                    fontSize: 14,
+                                    background: '#f8fafc',
+                                    borderRadius: 8,
+                                    border: '1px dashed #cbd5e1'
+                                }}>
+                                    まだジムが設定されていません
+                                </div>
+                            )}
+                        </div>
+
+                        {/* よく行くジムを追加ボタン */}
+                        <button
+                            type="button"
+                            onClick={() => setIsGymSelectorOpen(true)}
+                            style={{
+                                width: '100%',
+                                padding: '12px 16px',
+                                background: '#f1f5f9',
+                                border: '1px solid #cbd5e1',
+                                borderRadius: 8,
+                                fontSize: 14,
+                                fontWeight: 500,
+                                color: '#475569',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s ease'
+                            }}
+                            onMouseOver={(e) => {
+                                e.currentTarget.style.background = '#e2e8f0';
+                                e.currentTarget.style.borderColor = '#94a3b8';
+                            }}
+                            onMouseOut={(e) => {
+                                e.currentTarget.style.background = '#f1f5f9';
+                                e.currentTarget.style.borderColor = '#cbd5e1';
+                            }}
+                        >
+                            + よく行くジムを追加
+                        </button>
+                    </div>
                 </>
             )}
+
+            {/* ジム選択オーバーレイ */}
+            <GymSelector
+                isOpen={isGymSelectorOpen}
+                onClose={() => setIsGymSelectorOpen(false)}
+                onSelect={handleAddGym}
+            />
+
             {/* 適用ボタン（変更時のみ下部にポップアップ表示） */}
             {isChanged && (
                 <div style={{ position: 'fixed', left: 0, right: 0, bottom: 100, display: 'flex', justifyContent: 'center', zIndex: 100 }}>

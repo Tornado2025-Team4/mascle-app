@@ -35,6 +35,59 @@ const parseReqQuery = (c: Context): reqQuery => {
     return { chain_id, name, lat, lng, radius, limit } as reqQuery;
 };
 
+// WKB形式のPostGISデータから緯度経度を抽出する関数
+const parseWKBLocation = (wkbHex: string): { latitude: number; longitude: number } | null => {
+    try {
+        // WKB (Well-Known Binary) をパースして座標を取得
+        // PostgreSQLのPostGISから返される16進数文字列をパース
+
+        // WKBの構造：
+        // - 先頭4バイト: エンディアン
+        // - 次4バイト: ジオメトリタイプ
+        // - 次4バイト: SRID
+        // - X座標（8バイト double）
+        // - Y座標（8バイト double）
+
+        if (!wkbHex || wkbHex.length < 42) {
+            return null;
+        }
+
+        // SRID付きポイントの場合（先頭が01010000）
+        if (wkbHex.startsWith('0101000020')) {
+            // X座標の開始位置（SRID後）
+            const xStart = 18; // エンディアン(2) + タイプ(8) + SRID(8)
+            const yStart = 34; // X座標(16) 後
+
+            // 16進数文字列をリトルエンディアンのdoubleとして解釈
+            const xHex = wkbHex.substring(xStart, xStart + 16);
+            const yHex = wkbHex.substring(yStart, yStart + 16);
+
+            // リトルエンディアンの16進数をdoubleに変換
+            const xBuffer = Buffer.from(xHex, 'hex');
+            const yBuffer = Buffer.from(yHex, 'hex');
+
+            const longitude = xBuffer.readDoubleLE(0);
+            const latitude = yBuffer.readDoubleLE(0);
+
+            return { latitude, longitude };
+        }
+
+        return null;
+    } catch (e) {
+        console.error('Error parsing WKB location data:', e);
+        return null;
+    }
+};
+
+interface GymRawData {
+    pub_id: string;
+    name: string;
+    photo_rel_id: string | null;
+    location: string | object | null;
+    gymchain_rel_id: number | null;
+    gymchain_internal_id: { address?: string } | null;
+}
+
 export default async function get(c: Context) {
     const spClAnon = mustGetCtx<SupabaseClient>(c, 'supabaseClientAnon');
 
@@ -42,35 +95,43 @@ export default async function get(c: Context) {
 
     let query = spClAnon
         .from('gyms_master')
-        .select(`
-            pub_id,
-            name,
-            photo_rel_id,
-            location,
-            gymchain_rel_id,
-            gymchain_internal_id
-        `);
+        .select('pub_id, name, photo_rel_id, location, gymchain_rel_id, gymchain_internal_id');
 
     if (rq.name) {
         query = query.ilike('name', `%${rq.name}%`);
     }
 
+    let gymsData: GymRawData[];
+
     if (rq.lat !== undefined && rq.lng !== undefined && rq.radius !== undefined) {
-        query = query.filter('location', 'dwithin', `{"type":"Point","coordinates":[${rq.lng},${rq.lat}]},${rq.radius}`);
-    }
+        // PostGISの地理的検索をRPC関数で実行
+        const { data: nearbyGyms, error: geoError } = await spClAnon
+            .rpc('get_nearby_gyms', {
+                center_lat: rq.lat,
+                center_lng: rq.lng,
+                radius_meters: rq.radius,
+                max_results: rq.limit
+            });
 
-    query = query.limit(rq.limit);
-
-    const { data: gymsData, error: gymsError } = await query;
-    if (gymsError) {
-        throw new ApiErrorFatal(`failed to fetch gyms ${gymsError.message}`);
+        if (geoError) {
+            throw new ApiErrorFatal(`geographical search failed: ${geoError.message}`);
+        }
+        gymsData = nearbyGyms || [];
+    } else {
+        // 名前検索やチェーンIDフィルタのみの場合は通常のクエリ
+        query = query.limit(rq.limit);
+        const { data: queryResult, error: gymsError } = await query;
+        if (gymsError) {
+            throw new ApiErrorFatal(`failed to fetch gyms ${gymsError.message}`);
+        }
+        gymsData = queryResult || [];
     }
 
     if (!gymsData || gymsData.length === 0) {
         return c.json([]);
     }
 
-    const gymchainRelIds = [...new Set(gymsData.map(gym => gym.gymchain_rel_id).filter(Boolean))];
+    const gymchainRelIds = [...new Set(gymsData.map((gym: GymRawData) => gym.gymchain_rel_id).filter(Boolean))];
     let gymchainsData: Array<{ rel_id: number, pub_id: string, name: string, icon_rel_id: string | null }> = [];
 
     if (gymchainRelIds.length > 0) {
@@ -95,10 +156,10 @@ export default async function get(c: Context) {
     let filteredGyms = gymsData;
     if (rq.chain_id) {
         const validChainRelIds = new Set(gymchainsData.map(chain => chain.rel_id));
-        filteredGyms = gymsData.filter(gym => gym.gymchain_rel_id && validChainRelIds.has(gym.gymchain_rel_id));
+        filteredGyms = gymsData.filter((gym: GymRawData) => gym.gymchain_rel_id && validChainRelIds.has(gym.gymchain_rel_id));
     }
 
-    const result = await Promise.all(filteredGyms.map(async (row) => {
+    const result = await Promise.all(filteredGyms.map(async (row: GymRawData) => {
         const chain = row.gymchain_rel_id ? gymchainsMap.get(row.gymchain_rel_id) : null;
 
         let photo_url: string | null = null;
@@ -161,11 +222,43 @@ export default async function get(c: Context) {
             };
         }
 
+        // PostGISの位置データを解析（WKB形式またはGeoJSON形式）
+        let latitude: number | null = null;
+        let longitude: number | null = null;
+
+        if (row.location) {
+            try {
+                // 文字列で16進数形式（WKB）の場合
+                if (typeof row.location === 'string' && row.location.match(/^[0-9A-Fa-f]+$/)) {
+                    const coords = parseWKBLocation(row.location);
+                    if (coords) {
+                        latitude = coords.latitude;
+                        longitude = coords.longitude;
+                    }
+                } else {
+                    // GeoJSON形式の場合
+                    const locationData = typeof row.location === 'string'
+                        ? JSON.parse(row.location)
+                        : row.location;
+
+                    if (locationData && locationData.type === 'Point' && locationData.coordinates) {
+                        longitude = locationData.coordinates[0]; // GeoJSONでは[lng, lat]の順序
+                        latitude = locationData.coordinates[1];
+                    }
+                }
+            } catch (e) {
+                console.error('Error parsing location data:', e, row.location);
+            }
+        }
+
         return {
             pub_id: row.pub_id,
             name: row.name,
             photo_url,
-            chain: chainWithIcon
+            chain: chainWithIcon,
+            latitude,
+            longitude,
+            address: chainWithIcon?.internal_id?.address || null
         };
     }));
 

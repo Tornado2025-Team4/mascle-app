@@ -161,7 +161,8 @@ const SetupPage = () => {
         training_since: formatTrainingSince(profileData.trainingSince),
         tags: await convertNamesToIds('/api/tags', profileData.tags || []),
         intents: await convertNamesToIds('/api/intents', profileData.intents || []),
-        intent_bodyparts: await convertNamesToIds('/api/bodyparts', profileData.bodyParts || [])
+        intent_bodyparts: await convertNamesToIds('/api/bodyparts', profileData.bodyParts || []),
+        belonging_gyms: (profileData.gyms || []).map(gym => gym.pub_id)
       };
 
       // アイコンがある場合のみ追加
@@ -234,7 +235,7 @@ const SetupPage = () => {
 
   return (
     <main className="max-w-md mx-auto p-6 space-y-6">
-      <h1 className="text-xl font-bold">初期セットアップ</h1>
+      <h1 className="text-xl font-bold">セットアップ</h1>
       <SetProfile
         userId="me"
         onSubmit={handleProfileSubmit}
