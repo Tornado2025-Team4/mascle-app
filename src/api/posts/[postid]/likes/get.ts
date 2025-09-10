@@ -2,7 +2,6 @@ import { Context } from 'hono';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { ApiErrorFatal, ApiErrorNotFound } from '../../../_cmn/error';
 import { mustGetCtx } from '../../../_cmn/get_ctx';
-import { convDateForFE, precision } from '../../../_cmn/conv_date_for_fe';
 
 interface reqQuery {
   limit: number;
@@ -61,7 +60,7 @@ export default async function get(c: Context) {
     .map(row => ({
       post_pub_id: row.post_pub_id,
       user: row.user_summary,
-      liked_at: row.liked_at ? convDateForFE(new Date(row.liked_at), precision.SECOND) : null
+      liked_at: new Date(row.liked_at).toISOString()
     }));
 
   return c.json(result);

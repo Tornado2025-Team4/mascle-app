@@ -3,7 +3,6 @@ import { UserIdInfo } from '../_cmn/userid_resolve';
 import { ApiErrorFatal } from '@/src/api/_cmn/error';
 import { mustGetCtx } from '@/src/api/_cmn/get_ctx';
 import { SupabaseClient } from '@supabase/supabase-js';
-import { convDateForFE, precision } from '@/src/api/_cmn/conv_date_for_fe';
 
 interface reqQuery {
     only_unread?: boolean;
@@ -166,7 +165,7 @@ export default async function get(c: Context) {
             const result: NoticeItem = {
                 pub_id: notice.pub_id,
                 is_read: notice.is_read,
-                notified_at: convDateForFE(new Date(notice.notified_at), precision.SECOND),
+                notified_at: new Date(notice.notified_at).toISOString(),
                 kind: notice.kind
             };
 

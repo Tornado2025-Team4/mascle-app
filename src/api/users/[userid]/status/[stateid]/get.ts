@@ -5,7 +5,6 @@ import { ApiErrorNotFound, ApiErrorFatal } from '@/src/api/_cmn/error';
 import { mustGetCtx } from '@/src/api/_cmn/get_ctx';
 import { mustGetPath } from '@/src/api/_cmn/get_path';
 import { SupabaseClient } from '@supabase/supabase-js';
-import { convDateForFE, precision } from '@/src/api/_cmn/conv_date_for_fe';
 
 interface respBody {
     pub_id: string;
@@ -238,39 +237,22 @@ const formatStatusDetailResponse = async (
                 }
             }
 
-            const gymchain_result: {
-                pub_id: string;
-                name: string;
-                icon_url?: string;
-                internal_id?: string;
-            } = {
+            const gymchain_result = {
                 pub_id: status.gym.gymchain.pub_id,
-                name: status.gym.gymchain.name
+                name: status.gym.gymchain.name,
+                ...(gymchain_icon_url && { icon_url: gymchain_icon_url }),
+                ...(status.gym.gymchain.internal_id && { internal_id: status.gym.gymchain.internal_id })
             };
-
-            if (gymchain_icon_url) gymchain_result.icon_url = gymchain_icon_url;
-            if (status.gym.gymchain.internal_id) gymchain_result.internal_id = status.gym.gymchain.internal_id;
 
             gymchain_with_icon_url = gymchain_result;
         }
 
-        const gym_result: {
-            pub_id: string;
-            name: string;
-            photo_url?: string;
-            gymchain?: {
-                pub_id: string;
-                name: string;
-                icon_url?: string;
-                internal_id?: string;
-            };
-        } = {
+        const gym_result = {
             pub_id: status.gym.pub_id,
-            name: status.gym.name
+            name: status.gym.name,
+            ...(photo_url && { photo_url }),
+            ...(gymchain_with_icon_url && { gymchain: gymchain_with_icon_url })
         };
-
-        if (photo_url) gym_result.photo_url = photo_url;
-        if (gymchain_with_icon_url) gym_result.gymchain = gymchain_with_icon_url;
 
         gym = gym_result;
     }
@@ -306,28 +288,17 @@ const formatStatusDetailResponse = async (
                 }
             }
 
-            const partnerResult: {
-                pub_id: string;
-                handle: string;
-                display_name?: string;
-                description?: string;
-                tags: Array<{ pub_id: string; name: string }>;
-                icon_url?: string;
-                skill_level?: string;
-                followings_count?: number;
-                followers_count?: number;
-            } = {
+            const partnerResult = {
                 pub_id: partner.pub_id,
                 handle: partner.handle,
-                tags: partner.tags || []
+                tags: partner.tags || [],
+                ...(partner.display_name && { display_name: partner.display_name }),
+                ...(partner.description && { description: partner.description }),
+                ...(icon_url && { icon_url }),
+                ...(partner.skill_level && { skill_level: partner.skill_level }),
+                ...(partner.followings_count !== undefined && { followings_count: partner.followings_count }),
+                ...(partner.followers_count !== undefined && { followers_count: partner.followers_count })
             };
-
-            if (partner.display_name) partnerResult.display_name = partner.display_name;
-            if (partner.description) partnerResult.description = partner.description;
-            if (icon_url) partnerResult.icon_url = icon_url;
-            if (partner.skill_level) partnerResult.skill_level = partner.skill_level;
-            if (partner.followings_count !== undefined) partnerResult.followings_count = partner.followings_count;
-            if (partner.followers_count !== undefined) partnerResult.followers_count = partner.followers_count;
 
             return partnerResult;
         }))
@@ -340,8 +311,8 @@ const formatStatusDetailResponse = async (
     return {
         pub_id: status.pub_id,
         user_pub_id: status.user_pub_id,
-        started_at: convDateForFE(new Date(status.started_at), precision.MINUTE),
-        finished_at: status.finished_at ? convDateForFE(new Date(status.finished_at), precision.MINUTE) : null,
+        started_at: status.started_at,
+        finished_at: status.finished_at || null,
         is_auto_detected: status.is_auto_detected,
         gym,
         partners,

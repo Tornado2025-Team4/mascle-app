@@ -4,7 +4,6 @@ import { mustGetCtx } from '../../../_cmn/get_ctx';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { UserIdInfo } from './../_cmn/userid_resolve';
 import { mustGetSpClSessOrAnon } from '@/src/api/_cmn/get_supaclient';
-import { convDateForFE, convDurationForFE, precision } from '@/src/api/_cmn/conv_date_for_fe';
 
 interface respBody {
     pub_id?: string
@@ -169,7 +168,7 @@ const getdata = async (c: Context, userPubId: string): Promise<respBody> => {
                 photo_rel_id: undefined, // 元のphoto_rel_idフィールドは削除
                 photo_name: undefined, // 元のphoto_nameフィールドは削除
                 gymchain: gymchain_with_icon_url,
-                joined_since: gym.joined_since ? convDurationForFE(new Date(gym.joined_since), new Date(), precision.DAY) : undefined
+                joined_since: gym.joined_since
             };
         }))
         : [];
@@ -193,9 +192,9 @@ const getdata = async (c: Context, userPubId: string): Promise<respBody> => {
     };
 
     if (icon_url) result.icon_url = icon_url;
-    if (profile.birth_date) result.birth_date = convDateForFE(new Date(profile.birth_date), precision.DAY);
-    if (profile.registered_since) result.registered_since = convDurationForFE(new Date(profile.registered_since), new Date(), precision.DAY);
-    if (profile.training_since) result.training_since = convDurationForFE(new Date(profile.training_since), new Date(), precision.DAY);
+    if (profile.birth_date) result.birth_date = new Date(profile.birth_date).toISOString();
+    if (profile.registered_since) result.registered_since = new Date(profile.registered_since).toISOString();
+    if (profile.training_since) result.training_since = new Date(profile.training_since).toISOString();
     if (profile.skill_level) result.skill_level = profile.skill_level;
 
     return result;
@@ -309,7 +308,7 @@ const getdata_anon = async (c: Context, userAnonPubId: string): Promise<respBody
                 photo_rel_id: undefined, // 元のphoto_rel_idフィールドは削除
                 photo_name: undefined, // 元のphoto_nameフィールドは削除
                 gymchain: gymchain_with_icon_url,
-                joined_since: gym.joined_since ? convDurationForFE(new Date(gym.joined_since), new Date(), precision.DAY) : undefined
+                joined_since: gym.joined_since
             };
         }))
         : [];
@@ -334,9 +333,9 @@ const getdata_anon = async (c: Context, userAnonPubId: string): Promise<respBody
     };
 
     if (icon_url) result2.icon_url = icon_url;
-    if (profile.birth_date) result2.birth_date = convDateForFE(new Date(profile.birth_date), precision.DAY);
-    if (profile.registered_since) result2.registered_since = convDurationForFE(new Date(profile.registered_since), new Date(), precision.DAY);
-    if (profile.training_since) result2.training_since = convDurationForFE(new Date(profile.training_since), new Date(), precision.DAY);
+    if (profile.birth_date) result2.birth_date = new Date(profile.birth_date).toISOString();
+    if (profile.registered_since) result2.registered_since = new Date(profile.registered_since).toISOString();
+    if (profile.training_since) result2.training_since = new Date(profile.training_since).toISOString();
     if (profile.skill_level) result2.skill_level = profile.skill_level;
 
     return result2;

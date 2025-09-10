@@ -2,7 +2,6 @@ import { Context } from 'hono';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { ApiErrorNotFound } from '../../_cmn/error';
 import { mustGetCtx } from '../../_cmn/get_ctx';
-import { convDateForFE, precision } from '../../_cmn/conv_date_for_fe';
 import { UserJwtInfo } from '../../_cmn/verify_jwt';
 
 export default async function get(c: Context) {
@@ -63,7 +62,7 @@ export default async function get(c: Context) {
   const result = {
     pub_id: data.pub_id,
     posted_user: data.user_summary,
-    posted_at: data.posted_at ? convDateForFE(new Date(data.posted_at), precision.SECOND) : null,
+    posted_at: new Date(data.posted_at).toISOString(),
     body: data.body,
     mentions: data.mentions || [],
     tags: data.tags || [],
