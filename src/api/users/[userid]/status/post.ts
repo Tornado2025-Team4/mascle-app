@@ -53,6 +53,32 @@ export default async function post(c: Context) {
 
     const userRelId = userData.rel_id;
 
+    // 既存の未完了トレーニングセッションをチェック
+    const { data: existingStatus, error: existingError } = await spClSess
+        .from('status_master')
+        .select('pub_id, rel_id')
+        .eq('user_rel_id', userRelId)
+        .is('finished_at', null)
+        .order('started_at', { ascending: false })
+        .limit(1);
+
+    if (existingError) {
+        throw new ApiErrorFatal(`Failed to check existing status: ${existingError.message}`);
+    }
+
+    // 未完了のセッションがある場合は自動終了
+    if (existingStatus && existingStatus.length > 0) {
+        const { error: finishError } = await spClSess
+            .from('status_master')
+            .update({ finished_at: new Date().toISOString() })
+            .eq('rel_id', existingStatus[0].rel_id);
+
+        if (finishError) {
+            console.error('Failed to auto-finish existing session:', finishError);
+            // エラーでも続行（新しいセッションは作成する）
+        }
+    }
+
     let gymRelId: number | null = null;
     if (body.gym_pub_id) {
         const { data: gymData, error: gymError } = await spClSess
@@ -118,42 +144,43 @@ export default async function post(c: Context) {
     // 重複を除去
     notificationTargetsPubIds = [...new Set(notificationTargetsPubIds)];
 
+    const { data: statusData, error: statusError } = await spClSess
+        .from('status_master')
+        .insert({
+            pub_id: statusPubId,
+            user_rel_id: userRelId,
+            started_at: startedAt.toISOString(),
+            is_auto_detected: body.is_auto_detected || false,
+            gym_rel_id: gymRelId
+        })
+        .select('rel_id')
+        .single();
+
+    if (statusError || !statusData) {
+        throw new ApiErrorFatal(`Failed to create status: ${statusError?.message}`);
+    }
+
+    const statusRelId = statusData.rel_id;
+
+    // パートナーを追加
+    if (partnerRelIds.length > 0) {
+        const partnerInserts = partnerRelIds.map(partnerRelId => ({
+            status_rel_id: statusRelId,
+            partner_user_rel_id: partnerRelId
+        }));
+
+        const { error: partnersError } = await spClSess
+            .from('status_lines_partners')
+            .insert(partnerInserts);
+
+        if (partnersError) {
+            throw new ApiErrorFatal(`Failed to add partners: ${partnersError.message}`);
+        }
+    }
+
+    // 通知送信は非同期で実行
     after(async () => {
         try {
-            const { data: statusData, error: statusError } = await spClSess
-                .from('status_master')
-                .insert({
-                    pub_id: statusPubId,
-                    user_rel_id: userRelId,
-                    started_at: startedAt.toISOString(),
-                    is_auto_detected: body.is_auto_detected || false,
-                    gym_rel_id: gymRelId
-                })
-                .select('rel_id')
-                .single();
-
-            if (statusError || !statusData) {
-                throw new ApiErrorFatal(`Failed to create status: ${statusError?.message}`);
-            }
-
-            const statusRelId = statusData.rel_id;
-
-            // パートナーを追加
-            if (partnerRelIds.length > 0) {
-                const partnerInserts = partnerRelIds.map(partnerRelId => ({
-                    status_rel_id: statusRelId,
-                    partner_user_rel_id: partnerRelId
-                }));
-
-                const { error: partnersError } = await spClSess
-                    .from('status_lines_partners')
-                    .insert(partnerInserts);
-
-                if (partnersError) {
-                    throw new ApiErrorFatal(`Failed to add partners: ${partnersError.message}`);
-                }
-            }
-
             // ビューで通知対象者を取得（プライバシーチェック・匿名化含む）
             const followerTargetsWithAnon: Array<{ pub_id: string, should_be_anon: boolean }> = [];
             const gymTargetsWithAnon: Array<{ pub_id: string, should_be_anon: boolean }> = [];
@@ -211,12 +238,14 @@ export default async function post(c: Context) {
                 );
             }
         } catch (e) {
-            console.error('Error in after function:', e);
+            console.error('Error in notification sending:', e);
         }
-    })
+    });
 
-    return c.json({
+    const responseBody = {
         pub_id: statusPubId,
         notification_targets: notificationTargetsPubIds
-    } as respBody);
+    } as respBody;
+
+    return c.json(responseBody);
 }
