@@ -24,7 +24,6 @@ const GymSelector: React.FC<GymSelectorProps> = ({ isOpen, onClose, onSelect }) 
     const [searchTerm, setSearchTerm] = useState('');
     const [searchResults, setSearchResults] = useState<Gym[]>([]);
     const [loading, setLoading] = useState(false);
-    const [nearbyGyms, setNearbyGyms] = useState<Gym[]>([]); // マップ上に表示するジム一覧
     const [mapCenter, setMapCenter] = useState<[number, number]>([35.6762, 139.6503]); // 皇居の座標
     const mapRef = useRef<HTMLDivElement>(null);
     const mapInstance = useRef<L.Map | null>(null);
@@ -85,8 +84,6 @@ const GymSelector: React.FC<GymSelectorProps> = ({ isOpen, onClose, onSelect }) 
                     distance: 0 // 距離計算は必要に応じて追加
                 }));
 
-                setNearbyGyms(gymArray);
-
                 // 既存のマーカーをクリア
                 if (mapInstance.current) {
                     mapInstance.current.eachLayer((layer: L.Layer) => {
@@ -125,50 +122,6 @@ const GymSelector: React.FC<GymSelectorProps> = ({ isOpen, onClose, onSelect }) 
                 });
 
                 // グローバル関数を設定（ポップアップから呼び出すため）
-                (window as WindowWithSelectGym).selectGym = (gymId: string) => {
-                    const selectedGym = gymArray.find((g: Gym) => g.pub_id === gymId);
-                    if (selectedGym) {
-                        onSelect(selectedGym);
-                    }
-                };
-
-                // 既存のマーカーをクリア
-                if (mapInstance.current) {
-                    mapInstance.current.eachLayer((layer: L.Layer) => {
-                        if ((layer as unknown as { isGymMarker?: boolean }).isGymMarker) {
-                            mapInstance.current?.removeLayer(layer);
-                        }
-                    });
-                }
-
-                // 新しいマーカーを追加
-                const L = await import('leaflet');
-                gymArray.forEach((gym: Gym) => {
-                    if (gym.latitude && gym.longitude && mapInstance.current) {
-                        const marker = L.default.marker([gym.latitude, gym.longitude])
-                            .addTo(mapInstance.current);
-
-                        const displayName = gym.chain_name ? `${gym.chain_name} - ${gym.name}` : gym.name;
-                        marker.bindPopup(`
-                            <div>
-                                <h3>${displayName}</h3>
-                                <button onclick="window.selectGym('${gym.pub_id}')" style="
-                                    background: #111827;
-                                    color: white;
-                                    border: none;
-                                    padding: 8px 16px;
-                                    border-radius: 4px;
-                                    cursor: pointer;
-                                    margin-top: 8px;
-                                ">選択</button>
-                            </div>
-                        `);
-
-                        (marker as unknown as { isGymMarker?: boolean }).isGymMarker = true;
-                    }
-                });
-
-                // グローバル関数を設定
                 (window as WindowWithSelectGym).selectGym = (gymId: string) => {
                     const selectedGym = gymArray.find((g: Gym) => g.pub_id === gymId);
                     if (selectedGym) {
