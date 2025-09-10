@@ -2,7 +2,6 @@ import { Context } from 'hono';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { ApiErrorFatal } from '../_cmn/error';
 import { mustGetCtx } from '../_cmn/get_ctx';
-import { convDateForFE, precision } from '../_cmn/conv_date_for_fe';
 
 interface reqQuery {
     user_pub_id?: string;
@@ -54,7 +53,7 @@ export default async function get(c: Context) {
         .map(row => ({
             pub_id: row.pub_id,
             posted_user: row.user_summary,
-            posted_at: row.posted_at ? convDateForFE(new Date(row.posted_at), precision.SECOND) : null,
+            posted_at: row.posted_at,
             body: row.body,
             mentions: row.mentions || [],
             tags: row.tags || [],

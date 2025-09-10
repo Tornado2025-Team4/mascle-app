@@ -2,7 +2,6 @@ import { Context } from 'hono';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { ApiErrorFatal, ApiErrorNotFound } from '../../../_cmn/error';
 import { mustGetCtx } from '../../../_cmn/get_ctx';
-import { convDateForFE, precision } from '../../../_cmn/conv_date_for_fe';
 
 interface reqQuery {
   limit: number;
@@ -62,7 +61,7 @@ export default async function get(c: Context) {
       pub_id: row.pub_id,
       post_pub_id: row.post_pub_id,
       user: row.user_summary,
-      commented_at: row.commented_at ? convDateForFE(new Date(row.commented_at), precision.SECOND) : null,
+      commented_at: row.commented_at,
       body: row.body,
       mentions: row.mentions || []
     }));

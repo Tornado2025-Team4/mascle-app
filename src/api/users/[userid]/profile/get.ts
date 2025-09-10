@@ -4,7 +4,6 @@ import { mustGetCtx } from '../../../_cmn/get_ctx';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { UserIdInfo } from './../_cmn/userid_resolve';
 import { mustGetSpClSessOrAnon } from '@/src/api/_cmn/get_supaclient';
-import { convDateForFE, convDurationForFE, precision } from '@/src/api/_cmn/conv_date_for_fe';
 
 interface respBody {
     pub_id?: string
@@ -169,7 +168,7 @@ const getdata = async (c: Context, userPubId: string): Promise<respBody> => {
                 photo_rel_id: undefined, // 元のphoto_rel_idフィールドは削除
                 photo_name: undefined, // 元のphoto_nameフィールドは削除
                 gymchain: gymchain_with_icon_url,
-                joined_since: gym.joined_since ? convDurationForFE(new Date(gym.joined_since), new Date(), precision.DAY) : undefined
+                joined_since: gym.joined_since
             };
         }))
         : [];
@@ -180,12 +179,12 @@ const getdata = async (c: Context, userPubId: string): Promise<respBody> => {
         display_name: profile.display_name,
         description: profile.description,
         icon_url,
-        birth_date: profile.birth_date ? convDateForFE(new Date(profile.birth_date), precision.DAY) : undefined,
+        birth_date: profile.birth_date,
         age: profile.age,
         generation: profile.generation,
         gender: profile.gender,
-        registered_since: profile.registered_since ? convDurationForFE(new Date(profile.registered_since), new Date(), precision.DAY) : undefined,
-        training_since: profile.training_since ? convDurationForFE(new Date(profile.training_since), new Date(), precision.DAY) : undefined,
+        registered_since: profile.registered_since,
+        training_since: profile.training_since,
         skill_level: profile.skill_level,
         inited: userMaster?.inited as boolean || false,
         tags: profile.tags || [],
@@ -306,7 +305,7 @@ const getdata_anon = async (c: Context, userAnonPubId: string): Promise<respBody
                 photo_rel_id: undefined, // 元のphoto_rel_idフィールドは削除
                 photo_name: undefined, // 元のphoto_nameフィールドは削除
                 gymchain: gymchain_with_icon_url,
-                joined_since: gym.joined_since ? convDurationForFE(new Date(gym.joined_since), new Date(), precision.DAY) : undefined
+                joined_since: gym.joined_since
             };
         }))
         : [];
@@ -318,12 +317,12 @@ const getdata_anon = async (c: Context, userAnonPubId: string): Promise<respBody
         display_name: profile.display_name,
         description: profile.description,
         icon_url,
-        birth_date: profile.birth_date ? convDateForFE(new Date(profile.birth_date), precision.DAY) : undefined,
+        birth_date: profile.birth_date,
         age: profile.age,
         generation: profile.generation,
         gender: profile.gender,
-        registered_since: profile.registered_since ? convDurationForFE(new Date(profile.registered_since), new Date(), precision.DAY) : undefined,
-        training_since: profile.training_since ? convDurationForFE(new Date(profile.training_since), new Date(), precision.DAY) : undefined,
+        registered_since: profile.registered_since,
+        training_since: profile.training_since,
         skill_level: profile.skill_level,
         inited: userMaster?.inited as boolean || false,
         tags: profile.tags || [],

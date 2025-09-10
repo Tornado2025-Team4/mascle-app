@@ -5,7 +5,6 @@ import { ApiErrorNotFound, ApiErrorFatal } from '@/src/api/_cmn/error';
 import { mustGetCtx } from '@/src/api/_cmn/get_ctx';
 import { mustGetPath } from '@/src/api/_cmn/get_path';
 import { SupabaseClient } from '@supabase/supabase-js';
-import { convDateForFE, precision } from '@/src/api/_cmn/conv_date_for_fe';
 
 interface respBody {
     pub_id: string;
@@ -306,8 +305,8 @@ const formatStatusDetailResponse = async (
     return {
         pub_id: status.pub_id,
         user_pub_id: status.user_pub_id,
-        started_at: convDateForFE(new Date(status.started_at), precision.MINUTE),
-        finished_at: status.finished_at ? convDateForFE(new Date(status.finished_at), precision.MINUTE) : null,
+        started_at: status.started_at,
+        finished_at: status.finished_at,
         is_auto_detected: status.is_auto_detected,
         gym,
         partners,
