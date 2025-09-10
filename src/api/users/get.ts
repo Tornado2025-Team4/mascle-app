@@ -36,6 +36,8 @@ interface UserRow {
     intent_bodyparts: IntentBodypart[];
     belonging_gyms: BelongingGym[];
     privacy_allowed_display_name: boolean;
+    is_following?: boolean;
+    is_followed_by?: boolean;
 }
 
 type reqQuery = {
@@ -290,7 +292,9 @@ export default async function get(c: Context) {
                 tags: row.tags || [],
                 intents: row.intents || [],
                 intent_bodyparts: row.intent_bodyparts || [],
-                belonging_gyms: row.belonging_gyms || []
+                belonging_gyms: row.belonging_gyms || [],
+                is_following: row.is_following || false,
+                is_followed_by: row.is_followed_by || false
             };
         });
 

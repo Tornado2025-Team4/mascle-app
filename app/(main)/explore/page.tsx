@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge'
 import { Search, User, FileText, ChevronDown, ChevronUp } from 'lucide-react'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { createClient } from '@/utils/supabase/client'
 
 interface Tag {
   pub_id?: string
@@ -55,6 +56,8 @@ interface User {
   intents: Intent[]
   intent_bodyparts: IntentBodypart[]
   belonging_gyms: BelongingGym[]
+  is_following?: boolean
+  is_followed_by?: boolean
 }
 
 interface PostedUser {
@@ -98,6 +101,10 @@ const Explore = () => {
   const [activeTab, setActiveTab] = useState('users')
   const [searchQuery, setSearchQuery] = useState('')
   const [showAdvancedSearch, setShowAdvancedSearch] = useState(false)
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
+  const [currentUserPubId, setCurrentUserPubId] = useState<string | null>(null)
+
+  const supabase = createClient()
 
   // ユーザー検索の詳細フィルター
   const [userFilters, setUserFilters] = useState({
@@ -126,6 +133,18 @@ const Explore = () => {
   const [postResults, setPostResults] = useState<Post[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
+
+  // 現在のユーザーIDを取得
+  useEffect(() => {
+    const getCurrentUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        setCurrentUserId(user.id) // auth_user_idをそのまま使用
+        setCurrentUserPubId(user.id) // pub_idはauth_user_idと同じ
+      }
+    }
+    getCurrentUser()
+  }, [supabase.auth])
 
   // APIから目的と部位の選択肢を取得
   useEffect(() => {
@@ -235,8 +254,12 @@ const Explore = () => {
       const response = await fetch(`/api/users?${params.toString()}`)
       if (response.ok) {
         const data = await response.json()
-        setUserResults(data)
-        if (data.length === 0) {
+        // 検索結果から自分自身を除外
+        const filteredData = currentUserPubId
+          ? data.filter((user: User) => user.pub_id !== currentUserPubId)
+          : data
+        setUserResults(filteredData)
+        if (filteredData.length === 0) {
           setErrorMessage('検索条件に一致するユーザーが見つかりませんでした')
         }
       } else if (response.status === 404) {
@@ -318,8 +341,49 @@ const Explore = () => {
     }
   }
 
+  // フォローボタンクリック処理
+  const handleFollowClick = async (user: User, e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+
+    if (!currentUserId) {
+      console.error('ユーザーがログインしていません')
+      return
+    }
+
+    try {
+      const action = user.is_following ? 'unfollow' : 'follow'
+      const response = await fetch(`/api/users/${currentUserId}/rel/followings`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          target_user_pub_id: user.pub_id,
+          action: action
+        })
+      })
+
+      if (response.ok) {
+        // フォロー状態を更新
+        setUserResults(prevUsers =>
+          prevUsers.map(u =>
+            u.pub_id === user.pub_id
+              ? { ...u, is_following: !u.is_following }
+              : u
+          )
+        )
+      } else {
+        const errorData = await response.json()
+        console.error('フォロー操作に失敗しました:', errorData)
+      }
+    } catch (error) {
+      console.error('フォロー操作エラー:', error)
+    }
+  }
+
   return (
-    <div className="max-w-4xl mx-auto p-6 space-y-6">
+    <div className="max-w-4xl mx-auto p-4 space-y-4">
       <div className="text-center">
         <h1 className="text-3xl font-bold mb-2">仲間を見つける</h1>
       </div>
@@ -336,9 +400,9 @@ const Explore = () => {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="users" className="space-y-4">
+        <TabsContent value="users" className="space-y-3">
           <Card>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-3 p-4">
               <div className="flex gap-2">
                 <Input
                   placeholder="ユーザー名、@ハンドル、#タグで検索..."
@@ -474,97 +538,109 @@ const Explore = () => {
                   </div>
                 </div>
               )}
-
-              {/* ユーザー検索結果 */}
-              <div className="mt-6">
-                {isLoading && <div className="text-center">検索中...</div>}
-                {errorMessage && !isLoading && (
-                  <div className="text-center text-red-600 bg-red-50 p-4 rounded-lg">
-                    {errorMessage}
-                  </div>
-                )}
-                {userResults.length > 0 && !isLoading && (
-                  <div className="grid gap-4">
-                    <h3 className="text-lg font-semibold">検索結果 ({userResults.length}件)</h3>
-                    {userResults.map((user, index) => (
-                      <Card key={user.pub_id || user.anon_pub_id || index}>
-                        <CardContent className="p-4">
-                          <div className="flex items-start space-x-3">
-                            <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden">
-                              {user.profile_icon_url ? (
-                                <Image
-                                  src={user.profile_icon_url}
-                                  alt=""
-                                  width={48}
-                                  height={48}
-                                  className="w-full h-full object-cover"
-                                />
-                              ) : (
-                                <User className="w-6 h-6 text-gray-500" />
-                              )}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="mb-1">
-                                <p className="font-medium truncate">{user.display_name}</p>
-                                {user.handle && (
-                                  <p className="text-sm text-gray-500 truncate">{user.handle}</p>
-                                )}
-                              </div>
-
-                              <div className="text-sm text-gray-500 mb-2">
-                                <div>
-                                  {user.generation && <span>{user.generation}代</span>}
-                                  {user.generation && user.gender && <span className="mx-2">•</span>}
-                                  {user.gender && <span>{user.gender === 'male' ? '男性' : user.gender === 'female' ? '女性' : 'その他'}</span>}
-                                </div>
-                                {user.training_since && (
-                                  <div className="mt-1">
-                                    <span>トレーニング歴: {user.training_since}</span>
-                                  </div>
-                                )}
-                              </div>
-
-                              {user.description && (
-                                <p className="text-sm mb-2 line-clamp-2">{user.description}</p>
-                              )}
-
-                              {user.tags && user.tags.length > 0 && (
-                                <div className="flex flex-wrap gap-1 mb-2">
-                                  {user.tags.slice(0, 3).map((tag: Tag, tagIndex: number) => (
-                                    <Badge key={tagIndex} variant="secondary" className="text-xs">
-                                      #{typeof tag === 'string' ? tag : tag.name}
-                                    </Badge>
-                                  ))}
-                                  {user.tags.length > 3 && (
-                                    <span className="text-xs text-gray-500">+{user.tags.length - 3}</span>
-                                  )}
-                                </div>
-                              )}
-
-                              {user.intents && user.intents.length > 0 && (
-                                <div className="flex flex-wrap gap-1">
-                                  {user.intents.slice(0, 2).map((intent: Intent, intentIndex: number) => (
-                                    <Badge key={intentIndex} variant="outline" className="text-xs">
-                                      {typeof intent === 'string' ? intent : intent.intent}
-                                    </Badge>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                )}
-              </div>
             </CardContent>
           </Card>
+
+          {/* ユーザー検索結果 - カードの外に移動 */}
+          {isLoading && <div className="text-center py-4">検索中...</div>}
+          {errorMessage && !isLoading && (
+            <div className="text-center text-red-600 bg-red-50 p-4 rounded-lg">
+              {errorMessage}
+            </div>
+          )}
+          {userResults.length > 0 && !isLoading && (
+            <div className="space-y-1">
+              {userResults.map((user, index) => (
+                <a
+                  key={user.pub_id || user.anon_pub_id || index}
+                  href={`/${user.handle || user.pub_id}`}
+                  className="block"
+                >
+                  <Card className="hover:shadow-md transition-shadow">
+                    <CardContent className="p-3">
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-start space-x-3 flex-1 min-w-0">
+                          <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0">
+                            {user.profile_icon_url ? (
+                              <Image
+                                src={user.profile_icon_url}
+                                alt=""
+                                width={40}
+                                height={40}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <User className="w-5 h-5 text-gray-500" />
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="mb-1">
+                              <h3 className="font-medium truncate hover:underline">
+                                {user.display_name}
+                              </h3>
+                              {user.handle && (
+                                <p className="text-sm text-gray-500 truncate">{user.handle}</p>
+                              )}
+                            </div>
+
+                            <div className="text-sm text-gray-500 mb-1">
+                              <div>
+                                {user.generation && <span>{user.generation}代</span>}
+                                {user.generation && user.gender && <span className="mx-2">•</span>}
+                                {user.gender && <span>{user.gender === 'male' ? '男性' : user.gender === 'female' ? '女性' : 'その他'}</span>}
+                              </div>
+                              {user.training_since && (
+                                <div className="mt-1">
+                                  <span>トレーニング歴: {user.training_since}</span>
+                                </div>
+                              )}
+                            </div>
+
+                            {user.description && (
+                              <p className="text-sm mb-2 line-clamp-2">{user.description}</p>
+                            )}
+
+                            <div className="flex flex-wrap gap-1">
+                              {user.tags && user.tags.slice(0, 2).map((tag: Tag, tagIndex: number) => (
+                                <Badge key={tagIndex} variant="secondary" className="text-xs">
+                                  #{typeof tag === 'string' ? tag : tag.name}
+                                </Badge>
+                              ))}
+                              {user.intents && user.intents.slice(0, 1).map((intent: Intent, intentIndex: number) => (
+                                <Badge key={intentIndex} variant="outline" className="text-xs">
+                                  {typeof intent === 'string' ? intent : intent.intent}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex flex-col items-end space-y-1 ml-2">
+                          {user.is_followed_by && (
+                            <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                              フォローされています
+                            </span>
+                          )}
+                          <Button
+                            size="sm"
+                            variant={user.is_following ? "secondary" : "default"}
+                            className="text-xs h-7 px-3"
+                            onClick={(e) => handleFollowClick(user, e)}
+                          >
+                            {user.is_following ? 'フォロー中' : 'フォロー'}
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </a>
+              ))}
+            </div>
+          )}
         </TabsContent>
 
-        <TabsContent value="posts" className="space-y-4">
+        <TabsContent value="posts" className="space-y-3">
           <Card>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-3 p-4">
               <div className="flex gap-2">
                 <Input
                   placeholder="投稿内容、@ユーザー名、#タグで検索..."
@@ -618,69 +694,66 @@ const Explore = () => {
                   </div>
                 </div>
               )}
-
-              {/* 投稿検索結果 */}
-              <div className="mt-6">
-                {isLoading && <div className="text-center">検索中...</div>}
-                {errorMessage && !isLoading && (
-                  <div className="text-center text-red-600 bg-red-50 p-4 rounded-lg">
-                    {errorMessage}
-                  </div>
-                )}
-                {postResults.length > 0 && !isLoading && (
-                  <div className="grid gap-4">
-                    <h3 className="text-lg font-semibold">検索結果 ({postResults.length}件)</h3>
-                    {postResults.map((post) => (
-                      <Card key={post.pub_id}>
-                        <CardContent className="p-4">
-                          <div className="flex items-start space-x-3">
-                            <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden">
-                              {post.posted_user.profile_icon_url ? (
-                                <Image
-                                  src={post.posted_user.profile_icon_url}
-                                  alt=""
-                                  width={40}
-                                  height={40}
-                                  className="w-full h-full object-cover"
-                                />
-                              ) : (
-                                <User className="w-5 h-5 text-gray-500" />
-                              )}
-                            </div>
-                            <div className="flex-1">
-                              <div className="flex items-center space-x-2 mb-1">
-                                <p className="font-medium">{post.posted_user.display_name}</p>
-                                {post.posted_user.handle && (
-                                  <p className="text-sm text-gray-500">@{post.posted_user.handle}</p>
-                                )}
-                                <span className="text-sm text-gray-500">
-                                  {new Date(post.posted_at).toLocaleDateString()}
-                                </span>
-                              </div>
-                              <p className="text-sm mb-2">{post.body}</p>
-                              {post.tags.length > 0 && (
-                                <div className="flex flex-wrap gap-1 mb-2">
-                                  {post.tags.map((tag, tagIndex) => (
-                                    <Badge key={tagIndex} variant="secondary" className="text-xs">
-                                      #{tag}
-                                    </Badge>
-                                  ))}
-                                </div>
-                              )}
-                              <div className="flex items-center space-x-4 text-sm text-gray-500">
-                                <span>{post.likes_count} いいね</span>
-                                <span>{post.comments_count} コメント</span>
-                              </div>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                )}
-              </div>
             </CardContent>
           </Card>
+
+          {/* 投稿検索結果 - カードの外に移動 */}
+          {isLoading && <div className="text-center py-4">検索中...</div>}
+          {errorMessage && !isLoading && (
+            <div className="text-center text-red-600 bg-red-50 p-4 rounded-lg">
+              {errorMessage}
+            </div>
+          )}
+          {postResults.length > 0 && !isLoading && (
+            <div className="space-y-3">
+              {postResults.map((post) => (
+                <Card key={post.pub_id}>
+                  <CardContent className="p-4">
+                    <div className="flex items-start space-x-3">
+                      <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden">
+                        {post.posted_user.profile_icon_url ? (
+                          <Image
+                            src={post.posted_user.profile_icon_url}
+                            alt=""
+                            width={40}
+                            height={40}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <User className="w-5 h-5 text-gray-500" />
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-2 mb-1">
+                          <p className="font-medium">{post.posted_user.display_name}</p>
+                          {post.posted_user.handle && (
+                            <p className="text-sm text-gray-500">{post.posted_user.handle}</p>
+                          )}
+                          <span className="text-sm text-gray-500">
+                            {new Date(post.posted_at).toLocaleDateString()}
+                          </span>
+                        </div>
+                        <p className="text-sm mb-2">{post.body}</p>
+                        {post.tags.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mb-2">
+                            {post.tags.map((tag, tagIndex) => (
+                              <Badge key={tagIndex} variant="secondary" className="text-xs">
+                                #{tag}
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+                        <div className="flex items-center space-x-4 text-sm text-gray-500">
+                          <span>{post.likes_count} いいね</span>
+                          <span>{post.comments_count} コメント</span>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
         </TabsContent>
       </Tabs>
     </div>
