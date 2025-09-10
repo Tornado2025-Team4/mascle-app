@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { mustGetCtx } from '../_cmn/get_ctx';
 import { SupabaseClient } from '@supabase/supabase-js';
 
+//! api/authに依存: 現在フロントエンドから直接使用されていないが、認証状態チェック用のエンドポイント
 const app_auth = new Hono();
 
 const getCookieMap = (cookieHeader?: string | null): Record<string, string> => {
@@ -19,6 +20,8 @@ const getCookieMap = (cookieHeader?: string | null): Record<string, string> => {
 };
 
 app_auth.get('/me', async (c) => {
+  //! api/authに依存: このエンドポイントは現在フロントエンドから使用されていない
+  //! 実際の認証チェックはmiddleware.tsで/api/users/me/profileを使用している
   const spClAnon = mustGetCtx<SupabaseClient>(c, 'supabaseClientAnon');
   const authHeader = c.req.header('authorization');
   let token: string | null = null;
