@@ -312,9 +312,16 @@ const GymSelector: React.FC<GymSelectorProps> = ({ isOpen, onClose, onSelect }) 
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            zIndex: 1000,
+            zIndex: 5000,
             padding: 20
-        }}>
+        }}
+            onClick={(e) => {
+                // 背景クリック時の処理
+                if (e.target === e.currentTarget) {
+                    onClose();
+                }
+            }}
+        >
             <div style={{
                 background: 'white',
                 borderRadius: 16,
@@ -325,7 +332,9 @@ const GymSelector: React.FC<GymSelectorProps> = ({ isOpen, onClose, onSelect }) 
                 display: 'flex',
                 flexDirection: 'column',
                 boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
-            }}>
+            }}
+                onClick={(e) => e.stopPropagation()} // ダイアログ内のクリックは伝播させない
+            >
                 {/* ヘッダー */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
                     <h2 style={{ fontSize: 20, fontWeight: 600, margin: 0 }}>ジムを選択</h2>

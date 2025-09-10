@@ -7,6 +7,9 @@ import { SupabaseClient } from '@supabase/supabase-js';
 
 interface reqBody {
     finished_at: string;
+    partners?: Array<{
+        handle: string;
+    }>;
     menus?: Array<{
         menu: {
             pub_id: string;
@@ -135,6 +138,11 @@ export default async function post(c: Context) {
         // 有酸素メニューの更新
         if (body.menus_cardio !== undefined) {
             await updateCardioMenus(spClSess, spClSrv, statusRelId, body.menus_cardio);
+        }
+
+        // パートナーの更新
+        if (body.partners !== undefined) {
+            await updatePartners(spClSess, spClSrv, statusRelId, body.partners);
         }
 
         return c.json({
@@ -275,6 +283,49 @@ const updateCardioMenus = async (
             if (cardioDetailsError) {
                 throw new ApiErrorFatal(`Failed to insert cardio details: ${cardioDetailsError.message}`);
             }
+        }
+    }
+};
+
+const updatePartners = async (
+    spClSA: SupabaseClient,
+    spClSrv: SupabaseClient,
+    statusRelId: number,
+    partners: Array<{ handle: string }>
+) => {
+    // 既存のパートナーを削除
+    const { error: deletePartnersError } = await spClSA
+        .from('status_lines_partners')
+        .delete()
+        .eq('status_rel_id', statusRelId);
+
+    if (deletePartnersError) {
+        throw new ApiErrorFatal(`Failed to delete existing partners: ${deletePartnersError.message}`);
+    }
+
+    // 新しいパートナーを追加
+    for (const partner of partners) {
+        // パートナーのrel_idを取得
+        const { data: partnerData, error: partnerError } = await spClSrv
+            .from('users_master')
+            .select('rel_id')
+            .eq('handle', partner.handle)
+            .single();
+
+        if (partnerError || !partnerData) {
+            throw new ApiErrorBadRequest(`Partner not found: ${partner.handle}`);
+        }
+
+        // status_lines_partnersに挿入
+        const { error: insertPartnerError } = await spClSA
+            .from('status_lines_partners')
+            .insert({
+                status_rel_id: statusRelId,
+                partner_user_rel_id: partnerData.rel_id
+            });
+
+        if (insertPartnerError) {
+            throw new ApiErrorFatal(`Failed to insert partner: ${insertPartnerError.message}`);
         }
     }
 };
