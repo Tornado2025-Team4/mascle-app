@@ -3,6 +3,39 @@ import { SupabaseClient } from '@supabase/supabase-js';
 import { ApiErrorFatal, ApiErrorBadRequest } from '../_cmn/error';
 import { mustGetCtx } from '../_cmn/get_ctx';
 
+interface Tag {
+    name: string;
+}
+
+interface Intent {
+    intent: string;
+}
+
+interface IntentBodypart {
+    bodypart: string;
+}
+
+interface BelongingGym {
+    name: string;
+}
+
+interface UserRow {
+    pub_id?: string;
+    anon_pub_id?: string;
+    handle?: string;
+    display_name: string;
+    description?: string;
+    profile_icon_url?: string;
+    generation?: number;
+    gender?: string;
+    training_since?: string;
+    tags: Tag[];
+    intents: Intent[];
+    intent_bodyparts: IntentBodypart[];
+    belonging_gyms: BelongingGym[];
+    privacy_allowed_display_name: boolean;
+}
+
 interface reqQuery {
     handle_id?: string;
     display_name?: string;
@@ -133,16 +166,26 @@ export default async function get(c: Context) {
 
     // レスポンス形式に変換
     const result = (data ?? [])
-        .filter(row => {
+        .filter((row: UserRow) => {
             // 認証済みユーザーの場合は全て、匿名の場合はプライバシー設定に従う
             if (spClSess) return true;
             // 匿名ビューの場合、completely_hiddenでないもののみ
             return row.privacy_allowed_display_name !== false;
         })
-        .map(row => ({
+        .map((row: UserRow) => ({
             pub_id: spClSess ? row.pub_id : undefined,
             anon_pub_id: spClSess ? undefined : row.anon_pub_id,
-            handle: spClSess ? row.handle : undefined
+            handle: spClSess ? row.handle : undefined,
+            display_name: row.display_name || row.handle || 'ユーザー',
+            description: row.description,
+            profile_icon_url: row.profile_icon_url,
+            generation: row.generation,
+            gender: row.gender,
+            training_since: row.training_since,
+            tags: row.tags || [],
+            intents: row.intents || [],
+            intent_bodyparts: row.intent_bodyparts || [],
+            belonging_gyms: row.belonging_gyms || []
         }));
 
     return c.json(result);
