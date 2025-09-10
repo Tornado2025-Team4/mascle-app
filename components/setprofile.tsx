@@ -319,11 +319,12 @@ export const SetProfile: React.FC<SetProfileProps> = ({ initialProfile, userId, 
                                     src={iconPreview}
                                     alt="アイコン"
                                     style={{
+                                        marginLeft: 3,
                                         width: 80,
                                         height: 80,
                                         borderRadius: '50%',
                                         objectFit: 'cover',
-                                        border: '2px solid #e5e7eb'
+                                        border: '2px solid #e5e7eb',
                                     }}
                                 />
                             ) : (
@@ -348,12 +349,12 @@ export const SetProfile: React.FC<SetProfileProps> = ({ initialProfile, userId, 
                                 style={{
                                     position: 'absolute',
                                     left: 0,
-                                    bottom: -32,
+                                    bottom: -40,
                                     fontSize: 13,
                                     background: '#f8fafc',
                                     border: '1px solid #d1d5db',
                                     borderRadius: 8,
-                                    padding: '6px 12px',
+                                    padding: '6px 6px',
                                     cursor: 'pointer',
                                     color: '#374151',
                                     transition: 'all 0.2s ease',
@@ -414,7 +415,7 @@ export const SetProfile: React.FC<SetProfileProps> = ({ initialProfile, userId, 
                             />
                         </div>
                     </div>
-                    <div style={{ marginTop: 32 }}>
+                    <div style={{ marginTop: 48 }}>
                         <label style={{ display: 'block', fontWeight: 600, marginBottom: 8, color: '#374151' }}>自己紹介</label>
                         <textarea
                             value={profile.bio || ''}
@@ -434,7 +435,7 @@ export const SetProfile: React.FC<SetProfileProps> = ({ initialProfile, userId, 
                             maxLength={200}
                         />
                     </div>
-                    <div style={{ marginTop: 28 }}>
+                    <div style={{ marginTop: 12 }}>
                         <div style={{ fontWeight: 600, marginBottom: 12, color: '#374151' }}>タグ</div>
                         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
                             {(profile.tags || []).map(tag => (
@@ -482,20 +483,60 @@ export const SetProfile: React.FC<SetProfileProps> = ({ initialProfile, userId, 
                             ))}
                         </div>
                         <div style={{ position: 'relative' }}>
-                            <input
-                                type="text"
-                                value={tagInput}
-                                onChange={e => setTagInput(e.target.value)}
-                                placeholder="タグを追加"
-                                style={{
-                                    border: '1px solid #d1d5db',
-                                    borderRadius: 8,
-                                    padding: '8px 12px',
-                                    width: 200,
-                                    fontSize: 14,
-                                    background: '#ffffff'
-                                }}
-                            />
+                            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                                <input
+                                    type="text"
+                                    value={tagInput}
+                                    onChange={e => setTagInput(e.target.value)}
+                                    onKeyDown={e => {
+                                        if (e.key === 'Enter' && tagInput.trim()) {
+                                            e.preventDefault();
+                                            handleAddTag(tagInput);
+                                        }
+                                    }}
+                                    placeholder="タグを追加"
+                                    style={{
+                                        border: '1px solid #d1d5db',
+                                        borderRadius: 8,
+                                        padding: '8px 12px',
+                                        width: 200,
+                                        fontSize: 14,
+                                        background: '#ffffff'
+                                    }}
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        if (tagInput.trim()) {
+                                            handleAddTag(tagInput);
+                                        }
+                                    }}
+                                    disabled={!tagInput.trim()}
+                                    style={{
+                                        background: tagInput.trim() ? '#111827' : '#9ca3af',
+                                        color: '#fff',
+                                        border: 'none',
+                                        borderRadius: 8,
+                                        padding: '8px 16px',
+                                        fontSize: 14,
+                                        fontWeight: 500,
+                                        cursor: tagInput.trim() ? 'pointer' : 'not-allowed',
+                                        transition: 'all 0.2s ease'
+                                    }}
+                                    onMouseOver={(e) => {
+                                        if (tagInput.trim()) {
+                                            e.currentTarget.style.background = '#1f2937';
+                                        }
+                                    }}
+                                    onMouseOut={(e) => {
+                                        if (tagInput.trim()) {
+                                            e.currentTarget.style.background = '#111827';
+                                        }
+                                    }}
+                                >
+                                    追加
+                                </button>
+                            </div>
                             {Object.keys(tagSuggestions).length > 0 && (
                                 <div style={{
                                     background: '#fff',
@@ -505,7 +546,9 @@ export const SetProfile: React.FC<SetProfileProps> = ({ initialProfile, userId, 
                                     position: 'absolute',
                                     zIndex: 10,
                                     boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                                    minWidth: 200
+                                    minWidth: 200,
+                                    maxHeight: 200,
+                                    overflowY: 'auto'
                                 }}>
                                     {Object.entries(tagSuggestions).map(([id, name]) => (
                                         <div
@@ -559,11 +602,9 @@ export const SetProfile: React.FC<SetProfileProps> = ({ initialProfile, userId, 
                                     value={profile.birthday?.year || ''}
                                     onChange={e => {
                                         const value = e.target.value.replace(/[^0-9]/g, '');
-                                        const currentYear = new Date().getFullYear();
-                                        const numValue = parseInt(value, 10);
 
-                                        // 値が空、または有効な年の範囲内の場合のみ更新
-                                        if (value === '' || (numValue >= 1900 && numValue <= currentYear)) {
+                                        // 4文字以下で数字のみの場合は更新
+                                        if (value.length <= 4) {
                                             handleChange('birthday', { ...profile.birthday, year: value });
                                         }
                                     }}
@@ -646,7 +687,7 @@ export const SetProfile: React.FC<SetProfileProps> = ({ initialProfile, userId, 
                         </div>
                     </div>
                     <div style={{ marginTop: 28 }}>
-                        <div style={{ fontWeight: 600, marginBottom: 8, color: '#374151' }}>トレーニング開始</div>
+                        <div style={{ fontWeight: 600, marginBottom: 8, color: '#374151' }}>トレーニング開始時期</div>
                         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                             <input
                                 type="text"
@@ -699,7 +740,7 @@ export const SetProfile: React.FC<SetProfileProps> = ({ initialProfile, userId, 
                                 borderRadius: 8,
                                 padding: 12,
                                 background: '#ffffff',
-                                maxHeight: 120,
+                                maxHeight: 180,
                                 overflowY: 'auto'
                             }}>
                                 {Object.entries(intentSuggestions).map(([id, name]) => (
@@ -736,7 +777,7 @@ export const SetProfile: React.FC<SetProfileProps> = ({ initialProfile, userId, 
                                 borderRadius: 8,
                                 padding: 12,
                                 background: '#ffffff',
-                                maxHeight: 120,
+                                maxHeight: 180,
                                 overflowY: 'auto'
                             }}>
                                 {Object.entries(bodyPartSuggestions).map(([id, name]) => (

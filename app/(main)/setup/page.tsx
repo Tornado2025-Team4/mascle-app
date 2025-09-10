@@ -215,7 +215,7 @@ const SetupPage = () => {
       }
 
       console.log('Profile updated successfully');
-      router.push('/(main)');
+      router.push('/');
     } catch (error) {
       console.error('Error updating profile:', error);
       alert('プロフィール更新中にエラーが発生しました');
@@ -238,7 +238,10 @@ const SetupPage = () => {
       <SetProfile
         userId="me"
         onSubmit={handleProfileSubmit}
-        onAfterSubmit={() => { router.replace('/'); router.refresh(); }}
+        onAfterSubmit={() => {
+          // プロフィール更新が成功した場合の追加処理があればここに
+          console.log('Setup completed successfully');
+        }}
       />
     </main>
   )
