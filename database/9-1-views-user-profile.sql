@@ -210,7 +210,25 @@ SELECT
                 WHERE pm.posted_user_rel_id = um.rel_id
             )
         ELSE NULL
-    END AS posts_count
+    END AS posts_count,
+
+    -- 現在のユーザーがこのユーザーをフォローしているか
+    EXISTS(
+        SELECT 1
+        FROM users_lines_followings ulf
+        JOIN users_master auth_user ON auth_user.pub_id = auth.uid()
+        WHERE ulf.user_rel_id = auth_user.rel_id
+        AND ulf.target_user_rel_id = um.rel_id
+    ) AS is_following,
+
+    -- このユーザーが現在のユーザーをフォローしているか
+    EXISTS(
+        SELECT 1
+        FROM users_lines_followings ulf
+        JOIN users_master auth_user ON auth_user.pub_id = auth.uid()
+        WHERE ulf.user_rel_id = um.rel_id
+        AND ulf.target_user_rel_id = auth_user.rel_id
+    ) AS is_followed_by
 
 FROM users_master um
 LEFT JOIN users_line_profile ulp ON um.rel_id = ulp.user_rel_id
