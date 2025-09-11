@@ -4,6 +4,7 @@ import { SupabaseClient } from '@supabase/supabase-js';
 import { ApiErrorFatal, ApiErrorUnprocessable } from '../_cmn/error';
 import { mustGetCtx } from '../_cmn/get_ctx';
 import { UserJwtInfo } from '../_cmn/verify_jwt';
+import { processBase64Image, uploadImageToStorage } from '../_cmn/image_utils';
 
 interface ReqBodyMention {
   offset: number;
@@ -16,6 +17,12 @@ interface ReqBody {
   tags?: string[];
   photos?: string[];
   status_pub_id?: string;
+  exercises?: string[];
+}
+
+interface ResBody {
+  pub_id: string;
+  status_pub_id?: string | undefined;
 }
 
 export default async function post(c: Context) {
@@ -138,5 +145,62 @@ export default async function post(c: Context) {
     }
   }
 
-  return c.json({ pub_id: pubId });
+  // 写真アップロード処理
+  if (reqBody.photos && reqBody.photos.length > 0) {
+    const photoInserts = [];
+    for (let i = 0; i < reqBody.photos.length; i++) {
+      const photoBase64 = reqBody.photos[i];
+
+      try {
+        // 新しいユーティリティ関数を使用
+        const { buffer, contentType, extension } = processBase64Image(photoBase64, 10 * 1024 * 1024);
+
+        // Supabaseストレージにアップロード
+        const { fileId } = await uploadImageToStorage(
+          spClSess,
+          'posts_photos',
+          buffer,
+          contentType,
+          extension
+        );
+
+        photoInserts.push({
+          post_rel_id: postData.rel_id,
+          photo_rel_id: fileId,
+          photo_thumb_rel_id: fileId, // サムネイルは同じファイルを使用
+        });
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : `Unknown error processing photo ${i + 1}`;
+        throw new ApiErrorUnprocessable('photos', errorMessage);
+      }
+    }
+
+    if (photoInserts.length > 0) {
+      const { error: photoInsertError } = await spClSess
+        .from('posts_lines_photos')
+        .insert(photoInserts);
+
+      if (photoInsertError) {
+        throw new ApiErrorFatal(`Failed to create photos: ${photoInsertError.message}`);
+      }
+    }
+  }
+
+  // 注意: exercisesフィールドは将来的な拡張用として残していますが、
+  // 現在はトレーニング記録(status)が既にメニューを持っているため、
+  // 投稿作成時に新たにメニューを作成・紐づけする処理は行いません。
+  // トレーニング記録は既存のstatus_pub_idを通じて参照してください。
+  let createdStatusPubId: string | undefined;
+
+  if (reqBody.exercises && reqBody.exercises.length > 0) {
+    // exercisesフィールドが送信された場合は警告ログを出力
+    console.warn('Exercises field is provided but not processed. Use existing status with menus instead.');
+  }
+
+  const response: ResBody = {
+    pub_id: pubId,
+    status_pub_id: createdStatusPubId
+  };
+
+  return c.json(response);
 }

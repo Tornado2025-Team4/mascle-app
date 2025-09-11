@@ -3,6 +3,7 @@ import { SupabaseClient } from '@supabase/supabase-js';
 import { ApiErrorFatal } from '../_cmn/error';
 import { mustGetCtx } from '../_cmn/get_ctx';
 import { UserJwtInfo } from '../_cmn/verify_jwt';
+import { createSignedUrlFromStorageId } from '../_cmn/image_utils';
 
 interface UserSummary {
     pub_id?: string;
@@ -197,8 +198,43 @@ export default async function get(c: Context) {
         }
     }
 
-    // 結果をマッピング
-    const result = filteredData.map((row: PostRow) => {
+    // 結果をマッピング（署名付きURLを生成）
+    const result = await Promise.all(filteredData.map(async (row: PostRow) => {
+        // 写真の署名付きURL生成
+        const photosWithSignedUrls = await Promise.all(
+            (row.photos || []).map(async (photo: Photo) => {
+                // url_nameがストレージIDかファイル名かを判断
+                const isStorageId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(photo.url_name);
+
+                let url: string | null = null;
+                let thumb_url: string | null = null;
+
+                if (isStorageId) {
+                    // ストレージIDの場合、署名付きURLを生成
+                    url = await createSignedUrlFromStorageId(spClSrv, 'posts_photos', photo.url_name);
+                    thumb_url = await createSignedUrlFromStorageId(spClSrv, 'posts_photos_thumb', photo.thumb_url_name);
+                } else {
+                    // ファイル名の場合、直接署名付きURLを生成
+                    const { data: signedUrl, error } = await spClSrv.storage
+                        .from('posts_photos')
+                        .createSignedUrl(photo.url_name, 60 * 60);
+
+                    url = error ? null : signedUrl?.signedUrl || null;
+
+                    const { data: thumbSignedUrl, error: thumbError } = await spClSrv.storage
+                        .from('posts_photos_thumb')
+                        .createSignedUrl(photo.thumb_url_name, 60 * 60);
+
+                    thumb_url = thumbError ? null : thumbSignedUrl?.signedUrl || null;
+                }
+
+                return {
+                    url: url || photo.url_name,
+                    thumb_url: thumb_url || photo.thumb_url_name
+                };
+            })
+        );
+
         return {
             pub_id: row.pub_id,
             posted_user: row.user_summary,
@@ -206,17 +242,14 @@ export default async function get(c: Context) {
             body: row.body,
             mentions: row.mentions || [],
             tags: row.tags || [],
-            photos: (row.photos || []).map((photo: Photo) => ({
-                url: photo.url_name,
-                thumb_url: photo.thumb_url_name
-            })),
+            photos: photosWithSignedUrls,
             likes_count: row.likes_count || 0,
             is_liked_by_current_user: userLikes.has(row.pub_id),
             comments_count: row.comments_count || 0,
             is_commented_by_current_user: userComments.has(row.pub_id),
             status: row.status_pub_id ? { pub_id: row.status_pub_id } : null
         };
-    });
+    }));
 
     return c.json(result);
 }

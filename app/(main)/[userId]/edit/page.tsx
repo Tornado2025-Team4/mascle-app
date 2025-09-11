@@ -254,11 +254,22 @@ const ProfileEdit = () => {
             <Input
               id="icon-upload"
               type="file"
-              accept="image/*"
+              accept="image/jpeg,image/jpg,image/png,image/webp"
               className="hidden"
               onChange={(e) => {
                 const file = e.target.files?.[0]
                 if (!file) return
+
+                const supportedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
+                if (!supportedTypes.includes(file.type)) {
+                  alert('サポートされていない形式です。JPEG、PNG、WebPのみサポートしています。')
+                  return
+                }
+                if (file.size > 5 * 1024 * 1024) { // 5MB制限
+                  alert('ファイルが大きすぎます（最大5MB）。')
+                  return
+                }
+
                 const preview = URL.createObjectURL(file)
                 setUserData(prev => ({ ...prev, icon_url: preview }))
                 setPendingIconFile(file)

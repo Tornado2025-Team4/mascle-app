@@ -3,6 +3,7 @@ import { SupabaseClient } from '@supabase/supabase-js';
 import { ApiErrorNotFound } from '../../_cmn/error';
 import { mustGetCtx } from '../../_cmn/get_ctx';
 import { UserJwtInfo } from '../../_cmn/verify_jwt';
+import { createSignedUrlFromStorageId } from '../../_cmn/image_utils';
 
 export default async function get(c: Context) {
   const spClSess = c.get('supabaseClientSess') as SupabaseClient | null;
@@ -59,6 +60,41 @@ export default async function get(c: Context) {
     }
   }
 
+  // 写真の署名付きURL生成
+  const photosWithSignedUrls = await Promise.all(
+    (data.photos || []).map(async (photo: { url_name: string; thumb_url_name: string }) => {
+      // url_nameがストレージIDかファイル名かを判断
+      const isStorageId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(photo.url_name);
+
+      let url: string | null = null;
+      let thumb_url: string | null = null;
+
+      if (isStorageId) {
+        // ストレージIDの場合、署名付きURLを生成
+        url = await createSignedUrlFromStorageId(spClSrv, 'post_photos', photo.url_name);
+        thumb_url = await createSignedUrlFromStorageId(spClSrv, 'post_photos_thumb', photo.thumb_url_name);
+      } else {
+        // ファイル名の場合、直接署名付きURLを生成
+        const { data: signedUrl, error } = await spClSrv.storage
+          .from('post_photos')
+          .createSignedUrl(photo.url_name, 60 * 60);
+
+        url = error ? null : signedUrl?.signedUrl || null;
+
+        const { data: thumbSignedUrl, error: thumbError } = await spClSrv.storage
+          .from('post_photos_thumb')
+          .createSignedUrl(photo.thumb_url_name, 60 * 60);
+
+        thumb_url = thumbError ? null : thumbSignedUrl?.signedUrl || null;
+      }
+
+      return {
+        url: url || photo.url_name,
+        thumb_url: thumb_url || photo.thumb_url_name
+      };
+    })
+  );
+
   const result = {
     pub_id: data.pub_id,
     posted_user: data.user_summary,
@@ -66,10 +102,7 @@ export default async function get(c: Context) {
     body: data.body,
     mentions: data.mentions || [],
     tags: data.tags || [],
-    photos: (data.photos || []).map((photo: { url_name: string; thumb_url_name: string }) => ({
-      url: photo.url_name,
-      thumb_url: photo.thumb_url_name
-    })),
+    photos: photosWithSignedUrls,
     likes_count: data.likes_count || 0,
     is_liked_by_current_user: isLikedByCurrentUser,
     comments_count: data.comments_count || 0,

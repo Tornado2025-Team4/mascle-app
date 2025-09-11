@@ -4,6 +4,7 @@ import { mustGetCtx } from '../../../_cmn/get_ctx';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { UserIdInfo } from './../_cmn/userid_resolve';
 import { userIdPub2Rel } from '@/src/api/_cmn/userid_pub2rel';
+import { processBase64Image, uploadImageToStorage } from '../../../_cmn/image_utils';
 
 interface reqBody {
     display_name?: string;
@@ -80,59 +81,52 @@ export default async function patch(c: Context) {
     }
 
     if (body.icon && typeof body.icon === 'string') {
-        const base64Data = body.icon.replace(/^data:image\/[a-zA-Z]+;base64,/, '');
-        const buffer = Buffer.from(base64Data, 'base64');
+        try {
+            const { buffer, contentType, extension } = processBase64Image(body.icon, 5 * 1024 * 1024);
 
-        if (buffer.length > 5 * 1024 * 1024) { // 5MB制限
-            throw new ApiErrorBadRequest("Icon file too large");
-        }
+            const { data: currentProfile, error: profileError } = await spClSess
+                .from('users_line_profile')
+                .select('icon_rel_id')
+                .eq('user_rel_id', relId)
+                .single();
 
-        const { data: currentProfile, error: profileError } = await spClSess
-            .from('users_line_profile')
-            .select('icon_rel_id')
-            .eq('user_rel_id', relId)
-            .single();
-
-        if (profileError) {
-            throw new ApiErrorFatal(`Failed to get current profile: ${profileError.message}`);
-        }
-
-        if (currentProfile?.icon_rel_id) {
-            const { error: deleteError } = await spClSess.storage
-                .from('users_icons')
-                .remove([currentProfile.icon_rel_id]);
-
-            if (deleteError) {
-                console.warn(`Failed to delete existing icon: ${deleteError.message}`);
-                // 削除エラーは致命的ではないので続行
+            if (profileError) {
+                throw new ApiErrorFatal(`Failed to get current profile: ${profileError.message}`);
             }
-        }
 
-        const fileName = `${crypto.randomUUID()}.jpg`;
+            if (currentProfile?.icon_rel_id) {
+                const { error: deleteError } = await spClSess.storage
+                    .from('users_icons')
+                    .remove([currentProfile.icon_rel_id]);
 
-        const { data: uploadData, error: uploadError } = await spClSess.storage
-            .from('users_icons')
-            .upload(fileName, buffer, {
-                contentType: 'image/jpeg',
-                upsert: false
-            });
+                if (deleteError) {
+                    console.warn(`Failed to delete existing icon: ${deleteError.message}`);
+                    // 削除エラーは致命的ではないので続行
+                }
+            }
 
-        if (uploadError) {
-            throw new ApiErrorFatal(`Failed to upload icon: ${uploadError.message}`);
-        }
+            const { fileId } = await uploadImageToStorage(
+                spClSess,
+                'users_icons',
+                buffer,
+                contentType,
+                extension
+            );
 
-        const fileId = uploadData?.id;
-        if (!fileId) {
-            throw new ApiErrorFatal('Failed to get uploaded file ID');
-        }
+            const { error: updateIconError } = await spClSess
+                .from('users_line_profile')
+                .update({ icon_rel_id: fileId })
+                .eq('user_rel_id', relId);
 
-        const { error: updateIconError } = await spClSess
-            .from('users_line_profile')
-            .update({ icon_rel_id: fileId })
-            .eq('user_rel_id', relId);
-
-        if (updateIconError) {
-            throw new ApiErrorFatal(`Failed to update icon in profile: ${updateIconError.message}`);
+            if (updateIconError) {
+                throw new ApiErrorFatal(`Failed to update icon in profile: ${updateIconError.message}`);
+            }
+        } catch (error) {
+            if (error instanceof ApiErrorFatal) {
+                throw error;
+            }
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error processing icon';
+            throw new ApiErrorBadRequest(errorMessage);
         }
     }
 

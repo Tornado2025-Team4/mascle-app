@@ -103,6 +103,16 @@ export default function CardPage() {
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (file) {
+      const supportedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
+      if (!supportedTypes.includes(file.type)) {
+        alert('サポートされていない形式です。JPEG、PNG、WebPのみサポートしています。')
+        return
+      }
+      if (file.size > 5 * 1024 * 1024) { // 5MB制限
+        alert('ファイルが大きすぎます（最大5MB）。')
+        return
+      }
+
       const reader = new FileReader()
       reader.onload = (e) => {
         const result = e.target?.result as string

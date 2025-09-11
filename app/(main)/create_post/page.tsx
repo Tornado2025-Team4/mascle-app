@@ -41,7 +41,7 @@ const CreatePost = () => {
   const [imagePreviews, setImagePreviews] = useState<string[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // トレーニング履歴
+  // トレーニング記録
   const [selectedStatus, setSelectedStatus] = useState<TrainingHistory | null>(null)
   const [isStatusSelectorOpen, setIsStatusSelectorOpen] = useState(false)
   const [trainingHistories, setTrainingHistories] = useState<TrainingHistory[]>([])
@@ -225,7 +225,20 @@ const CreatePost = () => {
   // 画像処理
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return
-    const picked = Array.from(e.target.files)
+
+    const supportedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
+    const picked = Array.from(e.target.files).filter(file => {
+      if (!supportedTypes.includes(file.type)) {
+        alert(`${file.name} はサポートされていない形式です。JPEG、PNG、WebPのみサポートしています。`)
+        return false
+      }
+      if (file.size > 10 * 1024 * 1024) { // 10MB制限
+        alert(`${file.name} は大きすぎます（最大10MB）。`)
+        return false
+      }
+      return true
+    })
+
     const next = [...images, ...picked].slice(0, 4)
     setImages(next)
     if (fileInputRef.current) fileInputRef.current.value = ''
@@ -269,7 +282,7 @@ const CreatePost = () => {
 
     // 投稿前にメンションハンドルのキャッシュを更新
     const mentionHandles = [...content.matchAll(/@(\w+)/g)].map(match => match[1])
-    const updatedMentions: Mention[] = []
+    const updatedMentions: { offset: number; pub_id: string }[] = []
 
     for (const handle of mentionHandles) {
       try {
@@ -279,10 +292,14 @@ const CreatePost = () => {
           const users = await response.json()
           if (users.length > 0) {
             const user = users[0]
-            updatedMentions.push({
-              handle: user.handle,
-              pub_id: user.pub_id
-            })
+            // メンションの位置を計算
+            const offset = content.indexOf(`@${handle}`)
+            if (offset !== -1) {
+              updatedMentions.push({
+                offset: offset,
+                pub_id: user.pub_id
+              })
+            }
           } else {
             alert(`@${handle} というユーザーは存在しません`)
             return
@@ -298,18 +315,16 @@ const CreatePost = () => {
       }
     }
 
-    // メンションキャッシュを更新
-    setMentions(updatedMentions)
-
     try {
       setSubmitting(true)
       const photos = await filesToBase64(images)
       const payload = {
         body: content,
-        mentions: updatedMentions.map(m => m.pub_id),
+        mentions: updatedMentions,
         tags: selectedTags,
         photos,
-        status_id: selectedStatus?.pub_id || null
+        status_pub_id: selectedStatus?.pub_id || undefined,
+        // 注意: exercisesフィールドは削除。既存のトレーニング記録を参照してください。
       }
 
       const res = await fetch('/api/posts', {
@@ -318,14 +333,18 @@ const CreatePost = () => {
         body: JSON.stringify(payload),
       })
 
-      if (!res.ok) throw new Error('投稿に失敗しました')
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}))
+        throw new Error(errorData.message || '投稿に失敗しました')
+      }
 
-      // 投稿成功時は現在のオリジンのメインページに遷移
+      await res.json();
+
       const origin = window.location.origin
       window.location.href = `${origin}/`
     } catch (err) {
       console.error(err)
-      alert('投稿に失敗しました')
+      alert(err instanceof Error ? err.message : '投稿に失敗しました')
     } finally {
       setSubmitting(false)
     }
@@ -445,7 +464,7 @@ const CreatePost = () => {
           <input
             ref={fileInputRef}
             type="file"
-            accept="image/*"
+            accept="image/jpeg,image/jpg,image/png,image/webp"
             multiple
             onChange={handleFileChange}
             className="hidden"
@@ -479,7 +498,7 @@ const CreatePost = () => {
           </div>
         </section>
 
-        {/* 4. 紐づけるトレーニング履歴 */}
+        {/* 5. 紐づけるトレーニング履歴 */}
         <section>
           <label className="block text-sm font-medium mb-2">トレーニング履歴を紐づけ</label>
 
