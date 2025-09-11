@@ -280,31 +280,51 @@ const CreatePost = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    // 投稿前にメンションハンドルのキャッシュを更新
-    const mentionHandles = [...content.matchAll(/@(\w+)/g)].map(match => match[1])
+    // メンションを正確に解析してオフセットとpub_idを計算
+    const mentionRegex = /@(\w+)/g
+    const mentionMatches = [...content.matchAll(mentionRegex)]
     const updatedMentions: { offset: number; pub_id: string }[] = []
 
-    for (const handle of mentionHandles) {
+    console.log('Content:', content)
+    console.log('Mention matches found:', mentionMatches)
+
+    // 重複排除のためのマップ（同じ位置に同じユーザーは1回だけ）
+    const processedMentions = new Set<string>()
+
+    for (const match of mentionMatches) {
+      const handle = match[1]
+      const offset = match.index!
+      const mentionKey = `${handle}-${offset}`
+
+      console.log(`Processing mention: @${handle} at offset ${offset}`)
+
+      // 既に処理済みの場合はスキップ
+      if (processedMentions.has(mentionKey)) {
+        console.log(`Skipping duplicate mention: ${mentionKey}`)
+        continue
+      }
+
       try {
-        // 各ハンドルについてAPIで再確認
+        // 各ハンドルについてAPIで確認
+        console.log(`Fetching user data for handle: @${handle}`)
         const response = await fetch(`/api/users?handle_id=${encodeURIComponent('@' + handle)}&limit=1`)
         if (response.ok) {
           const users = await response.json()
+          console.log(`API response for @${handle}:`, users)
           if (users.length > 0) {
             const user = users[0]
-            // メンションの位置を計算
-            const offset = content.indexOf(`@${handle}`)
-            if (offset !== -1) {
-              updatedMentions.push({
-                offset: offset,
-                pub_id: user.pub_id
-              })
-            }
+            console.log(`Found user: ${user.pub_id} for @${handle}`)
+            updatedMentions.push({
+              offset: offset,
+              pub_id: user.pub_id
+            })
+            processedMentions.add(mentionKey)
           } else {
             alert(`@${handle} というユーザーは存在しません`)
             return
           }
         } else {
+          console.error(`API request failed for @${handle}:`, response.status)
           alert(`@${handle} というユーザーの確認に失敗しました`)
           return
         }
@@ -315,17 +335,65 @@ const CreatePost = () => {
       }
     }
 
+    // メンション部分を削除したプレーンテキストとオフセットを再計算
+    // 前から順番に処理しながら、元の文字列からの正確なオフセットを計算
+    let workingText = content;
+    const finalMentions: { offset: number; pub_id: string }[] = [];
+
+    // オフセットの小さい順（前から）処理
+    const sortedMentions = [...updatedMentions].sort((a, b) => a.offset - b.offset);
+
+    for (const mention of sortedMentions) {
+      // 元の文字列での位置を使って@handle_nameを特定
+      const originalText = content.substring(mention.offset);
+      const mentionMatch = originalText.match(/^@(\w+)/);
+
+      if (mentionMatch) {
+        const fullMentionText = mentionMatch[0]; // "@handle_name"
+
+        // workingTextでの現在の位置を計算
+        // （既に削除されたメンション分だけ前にずれている）
+        let currentPosInWorkingText = mention.offset;
+        for (const prevMention of finalMentions) {
+          if (prevMention.offset < mention.offset) {
+            // 以前に削除されたメンションの長さ分だけ位置が前にずれる
+            const prevOriginalText = content.substring(prevMention.offset);
+            const prevMentionMatch = prevOriginalText.match(/^@(\w+)/);
+            if (prevMentionMatch) {
+              currentPosInWorkingText -= prevMentionMatch[0].length;
+            }
+          }
+        }
+
+        // workingTextから@handle_nameを削除
+        workingText = workingText.substring(0, currentPosInWorkingText) +
+          workingText.substring(currentPosInWorkingText + fullMentionText.length);
+
+        // 削除後の位置でメンション情報を保存
+        finalMentions.push({
+          offset: currentPosInWorkingText,
+          pub_id: mention.pub_id
+        });
+      }
+    }
+
+    console.log('Original content:', content);
+    console.log('Plain text body (mentions removed):', workingText);
+    console.log('Final mentions with adjusted offsets:', finalMentions);
+
     try {
       setSubmitting(true)
       const photos = await filesToBase64(images)
       const payload = {
-        body: content,
-        mentions: updatedMentions,
+        body: workingText, // トリムしない
+        mentions: finalMentions,
         tags: selectedTags,
         photos,
         status_pub_id: selectedStatus?.pub_id || undefined,
         // 注意: exercisesフィールドは削除。既存のトレーニング記録を参照してください。
-      }
+      }      // デバッグ用ログ
+      console.log('Sending payload:', payload)
+      console.log('Mentions being sent:', updatedMentions)
 
       const res = await fetch('/api/posts', {
         method: 'POST',

@@ -27,6 +27,7 @@ interface ResBody {
 
 export default async function post(c: Context) {
   const spClSess = mustGetCtx<SupabaseClient>(c, 'supabaseClientSess');
+  const spClSrv = mustGetCtx<SupabaseClient>(c, 'supabaseClientService');
   const userJwtInfo = mustGetCtx<UserJwtInfo>(c, 'userJwtInfo');
 
   const currentUserId = userJwtInfo.obj.id;
@@ -34,16 +35,16 @@ export default async function post(c: Context) {
   let reqBody: ReqBody;
   try {
     reqBody = await c.req.json();
+    console.log('Received request body:', JSON.stringify(reqBody, null, 2));
   } catch {
     throw new ApiErrorUnprocessable('body', 'Invalid JSON body');
   }
 
-  if (!reqBody.body || typeof reqBody.body !== 'string' || reqBody.body.trim().length === 0) {
+  if (!reqBody.body || typeof reqBody.body !== 'string' || reqBody.body.length === 0) {
     throw new ApiErrorUnprocessable('body', 'body is required and must be a non-empty string');
   }
 
-  const trimmedBody = reqBody.body.trim();
-  if (trimmedBody.length > 1000) {
+  if (reqBody.body.length > 1000) {
     throw new ApiErrorUnprocessable('body', 'body must be 1000 characters or less');
   }
 
@@ -78,7 +79,7 @@ export default async function post(c: Context) {
     .insert({
       pub_id: pubId,
       posted_user_rel_id: userData.rel_id,
-      body: trimmedBody,
+      body: reqBody.body,
       status_rel_id: statusRelId
     })
     .select('rel_id')
@@ -89,32 +90,45 @@ export default async function post(c: Context) {
   }
 
   if (reqBody.mentions && reqBody.mentions.length > 0) {
+    console.log('Processing mentions:', reqBody.mentions);
     const mentionInserts = [];
     for (const mention of reqBody.mentions) {
-      const { data: mentionUser, error: mentionError } = await spClSess
+      console.log(`Looking up user with pub_id: ${mention.pub_id}`);
+      const { data: mentionUser, error: mentionError } = await spClSrv
         .from('users_master')
         .select('rel_id')
         .eq('pub_id', mention.pub_id)
         .single();
 
-      if (!mentionError && mentionUser) {
+      if (mentionError) {
+        console.error(`Error finding user ${mention.pub_id}:`, mentionError);
+      } else if (mentionUser) {
+        console.log(`Found user ${mention.pub_id} with rel_id: ${mentionUser.rel_id}`);
         mentionInserts.push({
           post_rel_id: postData.rel_id,
           target_user_rel_id: mentionUser.rel_id,
           offset_num: mention.offset
         });
+      } else {
+        console.warn(`User not found for pub_id: ${mention.pub_id}`);
       }
     }
 
+    console.log('Mention inserts to be created:', mentionInserts);
     if (mentionInserts.length > 0) {
       const { error: mentionInsertError } = await spClSess
         .from('posts_lines_body_mentions')
         .insert(mentionInserts);
 
       if (mentionInsertError) {
+        console.error('Failed to insert mentions:', mentionInsertError);
         throw new ApiErrorFatal(`Failed to create mentions: ${mentionInsertError.message}`);
+      } else {
+        console.log(`Successfully inserted ${mentionInserts.length} mentions`);
       }
     }
+  } else {
+    console.log('No mentions to process');
   }
 
   if (reqBody.tags && reqBody.tags.length > 0) {
