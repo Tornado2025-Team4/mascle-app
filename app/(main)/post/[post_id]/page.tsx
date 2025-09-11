@@ -47,7 +47,7 @@ const Post = () => {
   if (!post) return <div className="p-4">投稿が見つかりません</div>
 
   return (
-    <div style={{ paddingTop: '8vh' }}>
+    <div style={{ paddingTop: '1vh' }}>
       <SubHeader title="投稿詳細" />
       <div className="px-4 py-4 space-y-4">
         <header className="flex items-center gap-3">

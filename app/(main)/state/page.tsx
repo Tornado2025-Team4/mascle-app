@@ -865,7 +865,7 @@ export default function StatePage() {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 pb-20" style={{ paddingTop: '8vh' }}>
+        <div className="min-h-screen bg-gray-50 pb-20" style={{ paddingTop: '1vh' }}>
             <SubHeader title="トレーニング記録管理" />
             <div className="container mx-auto px-4 py-6">
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">

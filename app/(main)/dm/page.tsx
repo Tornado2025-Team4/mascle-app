@@ -47,7 +47,7 @@ const DMs = () => {
   )
 
   return (
-    <div className="min-h-screen bg-white" style={{ paddingTop: '8vh' }}>
+    <div className="min-h-screen bg-white" style={{ paddingTop: '1vh' }}>
       <SubHeader title="DM" />
       {/* 検索バー */}
       <div className="px-4 py-3 border-b">
