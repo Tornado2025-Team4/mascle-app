@@ -42,11 +42,10 @@ export default async function post(c: Context) {
 
     // ブロックされていないかチェック
     const { data: blockData, error: blockError } = await spClSrv
-        .from('users_lines_rel')
+        .from('users_lines_blocks')
         .select('*')
-        .eq('follower_user_rel_id', currentUserData.rel_id)
-        .eq('followed_user_rel_id', targetUserData.rel_id)
-        .eq('relationship_type', 'block')
+        .eq('user_rel_id', currentUserData.rel_id)
+        .eq('target_user_rel_id', targetUserData.rel_id)
         .maybeSingle();
 
     if (blockError) {
@@ -59,11 +58,10 @@ export default async function post(c: Context) {
 
     // 相手からブロックされていないかチェック
     const { data: blockedByData, error: blockedByError } = await spClSrv
-        .from('users_lines_rel')
+        .from('users_lines_blocks')
         .select('*')
-        .eq('follower_user_rel_id', targetUserData.rel_id)
-        .eq('followed_user_rel_id', currentUserData.rel_id)
-        .eq('relationship_type', 'block')
+        .eq('user_rel_id', targetUserData.rel_id)
+        .eq('target_user_rel_id', currentUserData.rel_id)
         .maybeSingle();
 
     if (blockedByError) {

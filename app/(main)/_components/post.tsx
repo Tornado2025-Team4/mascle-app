@@ -287,14 +287,14 @@ export default function Post({
       });
 
       if (response.ok) {
-        alert('合トレ希望を送信しました！');
+        // 合トレ希望を送信しました
+        console.log('合トレ希望を送信しました');
       } else {
         const errorData = await response.json();
-        alert(`送信に失敗しました: ${errorData.message || '不明なエラー'}`);
+        console.error(`送信に失敗しました: ${errorData.message || '不明なエラー'}`);
       }
     } catch (error) {
       console.error('Error sending partner request:', error);
-      alert('エラーが発生しました');
     }
   };
 
