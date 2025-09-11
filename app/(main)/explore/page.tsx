@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { createClient } from '@/utils/supabase/client'
 import SubHeader from '@/components/sub-header'
+import Post from '../_components/post'
 
 interface Tag {
   pub_id?: string
@@ -69,33 +70,25 @@ interface PostedUser {
   profile_icon_url?: string
 }
 
-interface Mention {
-  user: PostedUser
-}
-
-interface Photo {
-  rel_id: string
-  name: string
-}
-
-interface Status {
-  pub_id: string
-  status: string
-}
-
 interface Post {
   pub_id: string
   posted_user: PostedUser
   posted_at: string
   body: string
-  mentions: Mention[]
-  tags: string[]
-  photos: Photo[]
+  mentions: Array<{
+    user_pub_id: string
+    display_name?: string
+  }>
+  tags: Array<{ pub_id: string; name: string }> | string[]
+  photos: Array<{
+    url: string
+    thumb_url?: string
+  }>
   likes_count: number
   is_liked_by_current_user: boolean
   comments_count: number
   is_commented_by_current_user: boolean
-  status: Status | null
+  status: { pub_id: string } | null
 }
 
 const Explore = () => {
@@ -384,7 +377,7 @@ const Explore = () => {
   }
 
   return (
-    <div className="max-w-4xl mx-auto p-4 space-y-4" style={{ paddingTop: '8vh' }}>
+    <div className="max-w-4xl mx-auto p-4 space-y-4" style={{ paddingTop: '1vh' }}>
       <SubHeader title="仲間を見つける" />
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-2">
@@ -599,16 +592,22 @@ const Explore = () => {
                             )}
 
                             <div className="flex flex-wrap gap-1">
-                              {user.tags && user.tags.slice(0, 2).map((tag: Tag, tagIndex: number) => (
-                                <Badge key={tagIndex} variant="secondary" className="text-xs">
-                                  #{typeof tag === 'string' ? tag : tag.name}
-                                </Badge>
-                              ))}
-                              {user.intents && user.intents.slice(0, 1).map((intent: Intent, intentIndex: number) => (
-                                <Badge key={intentIndex} variant="outline" className="text-xs">
-                                  {typeof intent === 'string' ? intent : intent.intent}
-                                </Badge>
-                              ))}
+                              {user.tags && Array.isArray(user.tags) && user.tags.slice(0, 2).map((tag: Tag, tagIndex: number) => {
+                                if (!tag || typeof tag !== 'object') return null;
+                                return (
+                                  <Badge key={tagIndex} variant="secondary" className="text-xs">
+                                    #{tag.name || 'タグ'}
+                                  </Badge>
+                                );
+                              })}
+                              {user.intents && Array.isArray(user.intents) && user.intents.slice(0, 1).map((intent: Intent, intentIndex: number) => {
+                                if (!intent || typeof intent !== 'object') return null;
+                                return (
+                                  <Badge key={intentIndex} variant="outline" className="text-xs">
+                                    {intent.intent || '目的'}
+                                  </Badge>
+                                );
+                              })}
                             </div>
                           </div>
                         </div>
@@ -703,53 +702,41 @@ const Explore = () => {
             </div>
           )}
           {postResults.length > 0 && !isLoading && (
-            <div className="space-y-3">
+            <div className="flex flex-col gap-2 px-2 pt-2 pb-16">
               {postResults.map((post) => (
-                <Card key={post.pub_id}>
-                  <CardContent className="p-4">
-                    <div className="flex items-start space-x-3">
-                      <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden">
-                        {post.posted_user.profile_icon_url ? (
-                          <Image
-                            src={post.posted_user.profile_icon_url}
-                            alt=""
-                            width={40}
-                            height={40}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <User className="w-5 h-5 text-gray-500" />
-                        )}
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-2 mb-1">
-                          <p className="font-medium">{post.posted_user.display_name}</p>
-                          {post.posted_user.handle && (
-                            <p className="text-sm text-gray-500">{post.posted_user.handle}</p>
-                          )}
-                          <span className="text-sm text-gray-500">
-                            {new Date(post.posted_at).toLocaleDateString()}
-                          </span>
-                        </div>
-                        <p className="text-sm mb-2">{post.body}</p>
-                        {post.tags.length > 0 && (
-                          <div className="flex flex-wrap gap-1 mb-2">
-                            {post.tags.map((tag, tagIndex) => (
-                              <Badge key={tagIndex} variant="secondary" className="text-xs">
-                                #{tag}
-                              </Badge>
-                            ))}
-                          </div>
-                        )}
-                        <div className="flex items-center space-x-4 text-sm text-gray-500">
-                          <span>{post.likes_count} いいね</span>
-                          <span>{post.comments_count} コメント</span>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                <Post
+                  key={post.pub_id}
+                  post_id={post.pub_id}
+                  user_display_name={post.posted_user.display_name || 'ユーザー'}
+                  user_handle={post.posted_user.handle || ''}
+                  user_icon={post.posted_user.profile_icon_url || '/images/image.png'}
+                  body={post.body || ''}
+                  mentions={post.mentions?.map(m => ({
+                    target_user: {
+                      handle: m.user_pub_id || '',
+                      ...(m.display_name && { display_name: m.display_name })
+                    },
+                    offset: 0 // exploreページのAPIレスポンスにはoffset情報がないため0を設定
+                  })) || []}
+                  tags={Array.isArray(post.tags) ? post.tags.map(tag =>
+                    typeof tag === 'string' ? tag : (tag?.name || 'タグ')
+                  ) : []}
+                  photos={post.photos?.map(ph => ({
+                    url: ph.url,
+                    ...(ph.thumb_url && { thumb_url: ph.thumb_url })
+                  })) || []}
+                  posted_at={post.posted_at || ''}
+                  like_count={post.likes_count || 0}
+                  comments_count={post.comments_count || 0}
+                  is_liked_by_current_user={post.is_liked_by_current_user || false}
+                  status={post.status || undefined}
+                />
               ))}
+            </div>
+          )}
+          {postResults.length === 0 && !isLoading && !errorMessage && (
+            <div className="text-center text-sm text-gray-500">
+              検索条件に一致する投稿がありません
             </div>
           )}
         </TabsContent>
