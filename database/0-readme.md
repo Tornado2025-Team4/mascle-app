@@ -10,11 +10,11 @@
 
 ユーザプロフィールのアイコン用画像
 
-### post_photos
+### posts_photos
 
 投稿用の写真
 
-### post_photos_thumb
+### posts_photos_thumb
 
 投稿用の写真のサムネ
 
@@ -26,7 +26,7 @@
 
 ジム店舗の写真
 
-### notice_icons
+### notices_icons
 
 ユーザへの通知のアイコン
 

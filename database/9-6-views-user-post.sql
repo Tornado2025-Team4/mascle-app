@@ -232,7 +232,27 @@ SELECT
                 WHERE cm.post_rel_id = pm.rel_id
             )
         ELSE NULL
-    END AS comments_count
+    END AS comments_count,
+
+    -- 現在のユーザーがこの投稿者をフォローしているかどうか
+    CASE
+        WHEN check_relationship_access(um.rel_id, po.posts) THEN
+            CASE
+                WHEN auth.uid() IS NOT NULL THEN
+                    EXISTS (
+                        SELECT 1
+                        FROM users_lines_followings ulf
+                        WHERE ulf.user_rel_id = (
+                            SELECT rel_id 
+                            FROM users_master 
+                            WHERE pub_id = auth.uid()
+                        )
+                        AND ulf.target_user_rel_id = um.rel_id
+                    )
+                ELSE false
+            END
+        ELSE NULL
+    END AS is_following_post_author
 
 FROM posts_master pm
 JOIN users_master um ON pm.posted_user_rel_id = um.rel_id
