@@ -4,7 +4,6 @@ import React from 'react'
 import { PiHouseLight } from "react-icons/pi";
 import { PiHouseFill } from "react-icons/pi";
 import { RiSearch2Line, RiSearch2Fill } from "react-icons/ri";
-import { FaRegSquarePlus, FaSquarePlus } from "react-icons/fa6";
 import { RiUser3Line } from "react-icons/ri";
 import { RiUser3Fill } from "react-icons/ri";
 import { FaDumbbell } from "react-icons/fa";
@@ -41,7 +40,7 @@ const Footer = () => {
   return (
     <footer className="fixed bottom-0 left-0 w-full h-[10vh] bg-white border-t border-gray-200 flex items-center justify-center z-50 safe-area-inset-bottom">
       <nav role="navigation" aria-label="メインナビゲーション" className="w-full max-w-md">
-        <ul className="flex items-center justify-center gap-8 text-4xl">
+        <ul className="flex items-center justify-center gap-12 text-4xl">
           {/* Home */}
           <li>
             <Link
@@ -70,22 +69,6 @@ const Footer = () => {
                 <RiSearch2Fill aria-hidden="true" />
               ) : (
                 <RiSearch2Line aria-hidden="true" />
-              )}
-            </Link>
-          </li>
-
-          {/* Post */}
-          <li>
-            <Link
-              href="/create_post"
-              aria-label="新規投稿"
-              className={`p-3 rounded-lg transition-colors duration-200 focus:outline-none ${isActive('/create_post') ? 'text-[#2C2C2C]' : 'text-gray-600 hover:text-gray-800'
-                }`}
-            >
-              {isActive('/create_post') ? (
-                <FaSquarePlus aria-hidden="true" />
-              ) : (
-                <FaRegSquarePlus aria-hidden="true" />
               )}
             </Link>
           </li>
