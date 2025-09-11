@@ -2,14 +2,12 @@
 
 import Link from "next/link";
 import { IoAdd } from "react-icons/io5";
-import Header from "./_components/header";
 import PostList from "./_components/postlist";
 
 export default function Home() {
   return (
     <div className="min-h-screen pb-[10vh] relative">
-      <Header />
-      <main className="h-[80vh] space-y-4 p-4 overflow-y-auto">
+      <main className="h-[72vh] space-y-4 p-4 overflow-y-auto">
         <PostList />
       </main>
 

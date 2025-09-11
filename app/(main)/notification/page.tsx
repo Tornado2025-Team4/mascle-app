@@ -1,9 +1,9 @@
 'use client'
 import React, { useEffect, useMemo, useState } from 'react'
-import { IoArrowBack } from 'react-icons/io5'
 import { IoEllipse } from 'react-icons/io5'
 import { useRouter } from 'next/navigation'
 import RecommendFollow from './_components/recommend-follow'
+import SubHeader from '@/components/sub-header'
 import type { Notification } from '@/types/notification.type'
 import { getNotificationDisplayText, handleNotificationClick } from '@/lib/notification'
 import { formatRelativeTime } from '@/lib/date'
@@ -44,15 +44,9 @@ const Notification = () => {
 
   return (
     <div className="h-svh bg-white flex flex-col">
-      {/* ヘッダー */}
-      <header className="flex items-center justify-start px-4 pt-5">
-        <button className="text-2xl" onClick={() => router.back()}>
-          <IoArrowBack />
-        </button>
-      </header>
-
+      <SubHeader title="通知" />
       {/* 通知一覧 */}
-      <main className="flex-1 overflow-y-auto px-4 pt-4 pb-24">
+      <main className="flex-1 overflow-y-auto px-4 pt-4 pb-24" style={{ maxHeight: 'calc(100vh - 8vh - 6vh - 10vh)' }}>
         {isLoading && (
           <p className="py-6 text-sm text-gray-500">読み込み中...</p>
         )}
@@ -66,11 +60,10 @@ const Notification = () => {
               {sortedNotifications.map((notification) => (
                 <li
                   key={notification.pub_id}
-                  className={`rounded-lg p-4 text-sm border-l-4 cursor-pointer transition-colors ${
-                    notification.is_read
+                  className={`rounded-lg p-4 text-sm border-l-4 cursor-pointer transition-colors ${notification.is_read
                       ? 'bg-gray-50 border-gray-300 hover:bg-gray-100'
                       : 'bg-rose-50 border-rose-300 shadow-sm hover:bg-rose-100'
-                  }`}
+                    }`}
                   onClick={() => handleNotificationClick(notification, router)}
                 >
                   <div className="flex items-start justify-between">
@@ -89,9 +82,8 @@ const Notification = () => {
                         </div>
                       </div>
                     </div>
-                    <span className={`tabular-nums text-xs ml-3 flex-shrink-0 ${
-                      notification.is_read ? 'text-gray-400' : 'text-gray-500'
-                    }`}>
+                    <span className={`tabular-nums text-xs ml-3 flex-shrink-0 ${notification.is_read ? 'text-gray-400' : 'text-gray-500'
+                      }`}>
                       {formatRelativeTime(notification.notified_at)}
                     </span>
                   </div>

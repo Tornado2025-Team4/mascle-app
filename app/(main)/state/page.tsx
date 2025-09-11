@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import SubHeader from '@/components/sub-header'
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -864,10 +865,9 @@ export default function StatePage() {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 pb-20">
+        <div className="min-h-screen bg-gray-50 pb-20" style={{ paddingTop: '8vh' }}>
+            <SubHeader title="トレーニング記録管理" />
             <div className="container mx-auto px-4 py-6">
-                <h1 className="text-2xl font-bold text-gray-900 mb-6">トレーニング記録管理</h1>
-
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                     <TabsList className="grid w-full grid-cols-2 mb-6">
                         <TabsTrigger value="history">記録管理</TabsTrigger>

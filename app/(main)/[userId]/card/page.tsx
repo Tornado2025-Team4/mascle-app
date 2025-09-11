@@ -12,8 +12,7 @@ import { IoPrintSharp } from "react-icons/io5";
 import { pdf } from '@react-pdf/renderer'
 import { QRCodeSVG } from 'qrcode.react'
 import Link from 'next/link'
-import { IoArrowBack } from 'react-icons/io5'
-import { useRouter } from 'next/navigation'
+import SubHeader from '@/components/sub-header'
 
 const DEFAULT_IMAGE = null
 
@@ -37,7 +36,6 @@ export default function CardPage() {
   const params = useParams()
   const userId = params.userId as string
   const [isExporting, setIsExporting] = useState(false)
-  const router = useRouter()
 
   // カスタマイズ状態
   const [customization, setCustomization] = useState({
@@ -57,7 +55,7 @@ export default function CardPage() {
   // 画像アップロード用のref
   const fileInputRef = React.useRef<HTMLInputElement>(null)
 
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
+  const baseUrl = typeof window !== 'undefined' ? window.location.origin : process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
   const qrCodeUrl = `${baseUrl}/${userId}`
 
   const handleExportPdf = async () => {
@@ -136,15 +134,9 @@ export default function CardPage() {
   const previewPadding = 12
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 pb-[13vh]">
+    <div className="min-h-screen bg-gray-50 py-8 pb-[13vh]" style={{ paddingTop: '1vh' }}>
+      <SubHeader title="名刺作成" />
       <div className="container mx-auto px-4">
-        {/* ヘッダー */}
-        <header className="flex items-center justify-start px-4 pt-5">
-          <button className="text-2xl" onClick={() => router.back()}>
-            <IoArrowBack />
-          </button>
-        </header>
-
         <div className="max-w-4xl mx-auto mt-5">
           <Card>
             <CardHeader>

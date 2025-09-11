@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
+import SubHeader from '@/components/sub-header'
 
 type ApiPhoto = { url: string; thumb_url?: string }
 type ApiPostedUser = { display_name?: string; icon_url?: string | null }
@@ -46,26 +47,29 @@ const Post = () => {
   if (!post) return <div className="p-4">投稿が見つかりません</div>
 
   return (
-    <div className="px-4 py-4 space-y-4">
-      <header className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-200 relative">
-          <Image src={post.posted_user.icon_url ?? '/images/image.png'} alt="icon" fill sizes="40px" className="object-cover" />
+    <div style={{ paddingTop: '8vh' }}>
+      <SubHeader title="投稿詳細" />
+      <div className="px-4 py-4 space-y-4">
+        <header className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-200 relative">
+            <Image src={post.posted_user.icon_url ?? '/images/image.png'} alt="icon" fill sizes="40px" className="object-cover" />
+          </div>
+          <div className="font-semibold">{post.posted_user.display_name ?? 'ユーザー'}</div>
+          <div className="ml-auto text-sm text-gray-500">{post.posted_at ?? ''}</div>
+        </header>
+
+        <p className="whitespace-pre-wrap leading-relaxed">{post.body}</p>
+
+        <div className="grid grid-cols-2 gap-2">
+          {post.photos.map((photo, idx) => (
+            <Link key={idx} href={`/post/${postId}/${idx + 1}`} className="block w-full aspect-square relative">
+              <Image src={photo.url} alt={`photo-${idx + 1}`} fill sizes="50vw" className="object-cover" />
+            </Link>
+          ))}
         </div>
-        <div className="font-semibold">{post.posted_user.display_name ?? 'ユーザー'}</div>
-        <div className="ml-auto text-sm text-gray-500">{post.posted_at ?? ''}</div>
-      </header>
 
-      <p className="whitespace-pre-wrap leading-relaxed">{post.body}</p>
-
-      <div className="grid grid-cols-2 gap-2">
-        {post.photos.map((photo, idx) => (
-          <Link key={idx} href={`/post/${postId}/${idx + 1}`} className="block w-full aspect-square relative">
-            <Image src={photo.url} alt={`photo-${idx + 1}`} fill sizes="50vw" className="object-cover" />
-          </Link>
-        ))}
+        <div className="text-sm text-gray-600">いいね {post.likes_count} ・ コメント {post.comments_count}</div>
       </div>
-
-      <div className="text-sm text-gray-600">いいね {post.likes_count} ・ コメント {post.comments_count}</div>
     </div>
   )
 }

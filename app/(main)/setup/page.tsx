@@ -240,7 +240,6 @@ const SetupPage = () => {
         userId="me"
         onSubmit={handleProfileSubmit}
         onAfterSubmit={() => {
-          // プロフィール更新が成功した場合の追加処理があればここに
           console.log('Setup completed successfully');
         }}
       />

@@ -4,7 +4,8 @@ import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
-import { IoChevronBack, IoTrashOutline, IoCameraOutline, IoTimeOutline, IoLocationOutline } from 'react-icons/io5'
+import SubHeader from '@/components/sub-header'
+import { IoTrashOutline, IoCameraOutline, IoTimeOutline, IoLocationOutline } from 'react-icons/io5'
 
 // 型定義
 type TrainingHistory = {
@@ -408,8 +409,7 @@ const CreatePost = () => {
 
       await res.json();
 
-      const origin = window.location.origin
-      window.location.href = `${origin}/`
+      router.push('/')
     } catch (err) {
       console.error(err)
       alert(err instanceof Error ? err.message : '投稿に失敗しました')
@@ -419,16 +419,8 @@ const CreatePost = () => {
   }
 
   return (
-    <div className="h-screen bg-white flex flex-col">
-      {/* ヘッダー */}
-      <header className="flex items-center justify-between px-4 pt-5 pb-3 border-b border-gray-200">
-        <button className="text-2xl" onClick={() => router.back()}>
-          <IoChevronBack />
-        </button>
-        <h1 className="text-lg font-semibold">投稿</h1>
-        <div className="w-6" />
-      </header>
-
+    <div className="h-screen bg-white flex flex-col" style={{ paddingTop: '1vh' }}>
+      <SubHeader title="投稿" />
       <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-4 py-4 space-y-6">
         {/* 1. 本文（メンション機能付き） */}
         <section>

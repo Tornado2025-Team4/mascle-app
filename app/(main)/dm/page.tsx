@@ -1,9 +1,8 @@
 'use client'
 import React, { useEffect, useState } from 'react'
 import Image from 'next/image'
-import { IoChevronBack } from "react-icons/io5";
 import { IoSearch } from "react-icons/io5";
-import { useRouter } from 'next/navigation';
+import SubHeader from '@/components/sub-header'
 import { DMPair } from '@/types/dm.type';
 
 const DMs = () => {
@@ -11,7 +10,6 @@ const DMs = () => {
   const [dms, setDms] = useState<DMPair[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const router = useRouter()
 
   useEffect(() => {
     const loadDMs = async () => {
@@ -43,21 +41,14 @@ const DMs = () => {
   }, [])
 
   // 検索フィルタリング
-  const filteredDms = dms.filter(dm => 
+  const filteredDms = dms.filter(dm =>
     dm.user_b_display_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     dm.last_message.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
   return (
-    <div className="min-h-screen bg-white">
-      {/* ヘッダー */}
-      <header className="flex items-center justify-start px-4 pt-5">
-        <button className="text-2xl" onClick={() => router.back()}>
-          <IoChevronBack />
-        </button>
-        <h1 className="absolute left-1/2 -translate-x-1/2 text-xl font-semibold">DM</h1>
-      </header>
-
+    <div className="min-h-screen bg-white" style={{ paddingTop: '8vh' }}>
+      <SubHeader title="DM" />
       {/* 検索バー */}
       <div className="px-4 py-3 border-b">
         <div className="relative">
@@ -71,7 +62,7 @@ const DMs = () => {
           />
         </div>
       </div>
-      
+
       {/* DM一覧 */}
       <div className="px-4 py-2">
         {loading ? (
@@ -106,7 +97,7 @@ const DMs = () => {
                     className="w-full h-full object-cover"
                   />
                 </div>
-                
+
                 {/* ユーザー情報とメッセージ */}
                 <div className="flex flex-col min-w-0 flex-1">
                   <div className="flex items-center justify-between mb-1">
@@ -121,7 +112,7 @@ const DMs = () => {
                   <div className="text-sm text-gray-500 truncate">{dm.last_message}</div>
                 </div>
               </div>
-              
+
               {/* 未読バッジ */}
               {dm.unread_count > 0 && (
                 <div className="bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center flex-shrink-0">
