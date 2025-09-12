@@ -6,7 +6,8 @@ import { PiHouseFill } from "react-icons/pi";
 import { RiSearch2Line, RiSearch2Fill } from "react-icons/ri";
 import { RiUser3Line } from "react-icons/ri";
 import { RiUser3Fill } from "react-icons/ri";
-import { FaDumbbell } from "react-icons/fa";
+import { CgGym } from "react-icons/cg";
+import { IoFitnessSharp } from "react-icons/io5";
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { createClient as createBrowserClient } from '@/utils/supabase/client';
@@ -81,7 +82,11 @@ const Footer = () => {
               className={`p-4 rounded-lg transition-colors duration-200 focus:outline-none touch-manipulation ${isActive('/state') ? 'text-[#2C2C2C]' : 'text-gray-600 hover:text-gray-800'
                 }`}
             >
-              <FaDumbbell aria-hidden="true" />
+              {isActive('/state') ? (
+                <IoFitnessSharp aria-hidden="true" />
+              ) : (
+                <CgGym aria-hidden="true" />
+              )}
             </Link>
           </li>
 

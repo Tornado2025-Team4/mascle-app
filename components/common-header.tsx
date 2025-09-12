@@ -22,7 +22,7 @@ const CommonHeader: React.FC<CommonHeaderProps> = ({
     if (showBackButton && title) {
         // バックボタン付きヘッダー（通知ページ、DMページなど用）
         return (
-            <header className="w-full h-[8vh] flex items-center justify-between px-4 pt-4 bg-white border-b border-gray-100">
+            <header className="fixed top-0 left-0 w-full h-[8vh] flex items-center justify-between px-4 pt-4 bg-white border-b border-gray-100 z-50">
                 <button
                     className="text-2xl text-gray-600 hover:text-gray-800"
                     onClick={onBackClick}
@@ -38,7 +38,7 @@ const CommonHeader: React.FC<CommonHeaderProps> = ({
 
     // 通常のホームヘッダー（ロゴ + 通知/DMアイコン）
     return (
-        <header className="w-full h-[8vh] flex items-center justify-between px-8 pt-4 bg-white border-b border-gray-100">
+        <header className="fixed top-0 left-0 w-full h-[8vh] flex items-center justify-between px-8 pt-4 bg-white border-b border-gray-100 z-50">
             <Link href="/" aria-label="ホームに戻る" className="ml-2">
                 <Image
                     src="/images/titlelogo.svg"

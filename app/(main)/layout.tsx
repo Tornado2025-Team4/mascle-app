@@ -12,7 +12,9 @@ export default function MainLayout({
   return (
     <NotificationProvider>
       <CommonHeader />
-      {children}
+      <div className="pt-[8vh]">
+        {children}
+      </div>
       <Footer />
     </NotificationProvider>
   );

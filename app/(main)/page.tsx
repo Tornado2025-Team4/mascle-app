@@ -6,20 +6,20 @@ import PostList from "./_components/postlist";
 import TrainingStatus from "./_components/training-status";
 
 export default function Home() {
-  // TODO: 実際の認証システムと統合する際に、ログインユーザーのIDを取得
-  // 現在は仮のIDを使用
-  const currentUserId = "dummy_user_id"; // 実際には認証コンテキストから取得
+  // 認証システム統合予定: 実際のユーザー認証を実装する際にログインユーザーのIDを取得
+  // 現在は開発用の仮IDを使用（認証コンテキストまたはSupabaseから取得予定）
+  const currentUserId = "dummy_user_id";
 
   return (
-    <div className="min-h-screen pb-[10vh] relative">
-      <main className="h-[72vh] overflow-y-auto">
+    <div className="min-h-screen pb-[8vh] relative">
+      <main className="h-[calc(100vh-8vh)] overflow-y-auto">
         {/* トレーニング状態表示 - ユーザーの実際のトレーニング状況に基づく */}
         <div className="p-4 pb-0">
           <TrainingStatus currentUserId={currentUserId} />
         </div>
 
         {/* 投稿一覧 */}
-        <div className="px-4">
+        <div className="px-4 pb-[4vh]">
           <PostList />
         </div>
       </main>
