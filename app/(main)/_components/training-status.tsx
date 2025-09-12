@@ -162,16 +162,16 @@ const TrainingStatus: React.FC<TrainingStatusProps> = ({ currentUserId }) => {
                 >
                     <div className="flex items-center space-x-3">
                         <div className="bg-gradient-to-br from-orange-500 to-red-500 p-2 rounded-full shadow-lg">
-                            <Dumbbell className="h-5 w-5 text-white" />
+                            <Dumbbell className="h-7 w-7 text-white" />
                         </div>
                         <div className="flex-1">
                             <div className="flex items-center space-x-2">
-                                <span className="text-sm font-semibold text-gray-900">
+                                <span className="text-base font-semibold text-gray-900">
                                     {trainingData.total_count}人が同じジムでトレーニング中
                                 </span>
                                 <MapPin className="h-4 w-4 text-orange-600" />
                             </div>
-                            <p className="text-xs text-gray-600 mt-1">
+                            <p className="text-ms text-gray-600 mt-1">
                                 クリックして詳細を表示
                             </p>
                         </div>
