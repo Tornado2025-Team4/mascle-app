@@ -3,7 +3,6 @@ import { SupabaseClient } from '@supabase/supabase-js';
 import { ApiErrorFatal } from '../_cmn/error';
 import { mustGetCtx } from '../_cmn/get_ctx';
 import { UserJwtInfo } from '../_cmn/verify_jwt';
-import { createSignedUrlFromStorageId } from '../_cmn/image_utils';
 
 interface UserSummary {
     pub_id?: string;

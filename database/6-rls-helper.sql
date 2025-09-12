@@ -20,8 +20,14 @@ DECLARE
 BEGIN
     current_user_rel_id := get_current_user_rel_id();
 
+    -- current_user_rel_idがnullの場合（認証されていない）
+    IF current_user_rel_id IS NULL THEN
+        -- anyoneの場合のみアクセス可能
+        RETURN required_level = 'anyone';
+    END IF;
+
     -- 自分自身の場合は常にアクセス可能
-    IF current_user_rel_id = target_user_rel_id THEN
+    IF current_user_rel_id = check_relationship_access.target_user_rel_id THEN
         RETURN TRUE;
     END IF;
 
@@ -40,7 +46,7 @@ BEGIN
         RETURN EXISTS(
             SELECT 1 FROM users_lines_followings f
             WHERE f.user_rel_id = current_user_rel_id
-            AND f.target_user_rel_id = target_user_rel_id
+            AND f.target_user_rel_id = check_relationship_access.target_user_rel_id
         );
     END IF;
 
@@ -48,7 +54,7 @@ BEGIN
     IF required_level = 'following' THEN
         RETURN EXISTS(
             SELECT 1 FROM users_lines_followings f
-            WHERE f.user_rel_id = target_user_rel_id
+            WHERE f.user_rel_id = check_relationship_access.target_user_rel_id
             AND f.target_user_rel_id = current_user_rel_id
         );
     END IF;
@@ -56,11 +62,13 @@ BEGIN
     -- follow-followersの場合: 相互フォロー
     IF required_level = 'follow-followers' THEN
         RETURN EXISTS(
-            SELECT 1 FROM users_lines_followings f1, users_lines_followings f2
-            WHERE f1.user_rel_id = current_user_rel_id
-            AND f1.target_user_rel_id = target_user_rel_id
-            AND f2.user_rel_id = target_user_rel_id
-            AND f2.target_user_rel_id = current_user_rel_id
+            SELECT 1 FROM users_lines_followings ulf1
+            WHERE ulf1.user_rel_id = current_user_rel_id
+            AND ulf1.target_user_rel_id = check_relationship_access.target_user_rel_id
+        ) AND EXISTS(
+            SELECT 1 FROM users_lines_followings ulf2
+            WHERE ulf2.user_rel_id = check_relationship_access.target_user_rel_id
+            AND ulf2.target_user_rel_id = current_user_rel_id
         );
     END IF;
 

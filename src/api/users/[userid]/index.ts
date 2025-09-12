@@ -8,6 +8,7 @@ import app_users_userid_menus from './menus';
 import app_users_userid_menus_cardio from './menus_cardio';
 import app_users_userid_notices from './notices';
 import app_users_userid_rel from './rel';
+import app_users_userid_current_gym from './current_gym';
 import patch from './patch';
 import { createSupabaseSessMW } from '../../_cmn/create_supasess';
 import { verifyJwtMW } from '../../_cmn/verify_jwt';
@@ -26,5 +27,6 @@ app_users_userid.route('/menus', app_users_userid_menus);
 app_users_userid.route('/menus_cardio', app_users_userid_menus_cardio);
 app_users_userid.route('/notices', app_users_userid_notices);
 app_users_userid.route('/rel', app_users_userid_rel);
+app_users_userid.route('/current-gym', app_users_userid_current_gym);
 
 export default app_users_userid;

@@ -166,7 +166,7 @@ const PostList = () => {
   }
 
   return (
-    <div className="flex flex-col gap-2 px-2 pt-2 pb-16">
+    <div className="flex flex-col gap-2 py-2">
       {posts.map((post) => (
         <Post
           key={post.post_id}
