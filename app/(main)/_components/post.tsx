@@ -143,7 +143,7 @@ const processBodyWithMentions = (body: string, mentions: Array<{ target_user: { 
     linkMap[placeholder] = (
       <Link
         key={`mention-${handle}-${index}`}
-        href={`/${handle}`}
+        href={`/@${handle}`}
         className="text-blue-500 hover:underline"
       >
         @{handle}
@@ -386,7 +386,7 @@ export default function Post({
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
       {/* 投稿者情報 */}
       <header className="flex items-center gap-3 mb-2">
-        <Link href={`/${user_handle.replace(/^@+/, '')}`} className="flex items-center gap-3 hover:opacity-80">
+        <Link href={`/@${user_handle.replace(/^@+/, '')}`} className="flex items-center gap-3 hover:opacity-80">
           <Image
             src={isValidUrl(user_icon) ? user_icon : '/images/image.png'}
             alt={`${user_display_name}のアイコン`}
@@ -517,7 +517,7 @@ export default function Post({
                       {statusDetails.partners.map((partner, index) => (
                         <Link
                           key={`partner-${index}`}
-                          href={`/${partner.handle.replace(/^@+/, '')}`}
+                          href={`/@${partner.handle.replace(/^@+/, '')}`}
                           className="text-blue-500 hover:underline text-sm"
                         >
                           @{partner.handle.replace(/^@+/, '')}

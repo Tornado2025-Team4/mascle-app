@@ -930,7 +930,7 @@ export default function StatePage() {
                                                     {history.partners.map((partner, index: number) => (
                                                         <span key={`${history.pub_id}-partner-${index}`}>
                                                             <a
-                                                                href={`/${partner.handle.substring(1)}`}
+                                                                href={`/${partner.handle}`}
                                                                 className="text-blue-600 hover:underline"
                                                                 onClick={(e) => e.stopPropagation()}
                                                             >
@@ -1645,7 +1645,7 @@ export default function StatePage() {
                                     <div className="space-y-1">
                                         {selectedHistoryDetail.partners.map((partner, index) => (
                                             <div key={`detail-partner-${index}`} className="text-sm">
-                                                <a href={`/${partner.handle.substring(1)}`} className="text-blue-600 hover:underline">
+                                                <a href={`/${partner.handle}`} className="text-blue-600 hover:underline">
                                                     {partner.handle}
                                                 </a>
                                             </div>

@@ -12,9 +12,9 @@ const ProfileSetting = ({
   return (
     <div>
       {/* 自分のプロフィールのみ表示 */}
-      {userId === userId && (
+      {userId === 'me' && (
         <div className="mt-5">
-          <Link href={`/${userId}/edit`}>
+          <Link href={`/me/edit`}>
             <Button className="w-full text-base py-5">
               <FaEdit />
               プロフィールを編集

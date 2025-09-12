@@ -76,8 +76,11 @@ interface Post {
   posted_at: string
   body: string
   mentions: Array<{
-    user_pub_id: string
-    display_name?: string
+    target_user: {
+      handle: string
+      display_name?: string
+    }
+    offset: number
   }>
   tags: Array<{ pub_id: string; name: string }> | string[]
   photos: Array<{
@@ -541,96 +544,101 @@ const Explore = () => {
           )}
           {userResults.length > 0 && !isLoading && (
             <div className="space-y-1">
-              {userResults.map((user, index) => (
-                <a
-                  key={user.pub_id || user.anon_pub_id || index}
-                  href={`/${user.handle || user.pub_id}`}
-                  className="block"
-                >
-                  <Card className="hover:shadow-md transition-shadow">
-                    <CardContent className="p-3">
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-start space-x-3 flex-1 min-w-0">
-                          <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0">
-                            {user.profile_icon_url ? (
-                              <Image
-                                src={user.profile_icon_url}
-                                alt=""
-                                width={40}
-                                height={40}
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              <User className="w-5 h-5 text-gray-500" />
-                            )}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="mb-1">
-                              <h3 className="font-medium truncate hover:underline">
-                                {user.display_name}
-                              </h3>
-                              {user.handle && (
-                                <p className="text-sm text-gray-500 truncate">{user.handle}</p>
+              {userResults.map((user, index) => {
+                // 適切なユーザーIDを構築（@付きhandleまたは~付き匿名ID）
+                const userIdentifier = user.handle || (user.anon_pub_id ? `~${user.anon_pub_id}` : user.pub_id);
+
+                return (
+                  <a
+                    key={user.pub_id || user.anon_pub_id || index}
+                    href={`/${userIdentifier}`}
+                    className="block"
+                  >
+                    <Card className="hover:shadow-md transition-shadow">
+                      <CardContent className="p-3">
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-start space-x-3 flex-1 min-w-0">
+                            <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0">
+                              {user.profile_icon_url ? (
+                                <Image
+                                  src={user.profile_icon_url}
+                                  alt=""
+                                  width={40}
+                                  height={40}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <User className="w-5 h-5 text-gray-500" />
                               )}
                             </div>
-
-                            <div className="text-sm text-gray-500 mb-1">
-                              <div>
-                                {user.generation && <span>{user.generation}代</span>}
-                                {user.generation && user.gender && <span className="mx-2">•</span>}
-                                {user.gender && <span>{user.gender === 'male' ? '男性' : user.gender === 'female' ? '女性' : 'その他'}</span>}
+                            <div className="flex-1 min-w-0">
+                              <div className="mb-1">
+                                <h3 className="font-medium truncate hover:underline">
+                                  {user.display_name}
+                                </h3>
+                                {user.handle && (
+                                  <p className="text-sm text-gray-500 truncate">{user.handle}</p>
+                                )}
                               </div>
-                              {user.training_since && (
-                                <div className="mt-1">
-                                  <span>トレーニング歴: {user.training_since}</span>
+
+                              <div className="text-sm text-gray-500 mb-1">
+                                <div>
+                                  {user.generation && <span>{user.generation}代</span>}
+                                  {user.generation && user.gender && <span className="mx-2">•</span>}
+                                  {user.gender && <span>{user.gender === 'male' ? '男性' : user.gender === 'female' ? '女性' : 'その他'}</span>}
                                 </div>
+                                {user.training_since && (
+                                  <div className="mt-1">
+                                    <span>トレーニング歴: {user.training_since}</span>
+                                  </div>
+                                )}
+                              </div>
+
+                              {user.description && (
+                                <p className="text-sm mb-2 line-clamp-2">{user.description}</p>
                               )}
-                            </div>
 
-                            {user.description && (
-                              <p className="text-sm mb-2 line-clamp-2">{user.description}</p>
-                            )}
-
-                            <div className="flex flex-wrap gap-1">
-                              {user.tags && Array.isArray(user.tags) && user.tags.slice(0, 2).map((tag: Tag, tagIndex: number) => {
-                                if (!tag || typeof tag !== 'object') return null;
-                                return (
-                                  <Badge key={tagIndex} variant="secondary" className="text-xs">
-                                    #{tag.name || 'タグ'}
-                                  </Badge>
-                                );
-                              })}
-                              {user.intents && Array.isArray(user.intents) && user.intents.slice(0, 1).map((intent: Intent, intentIndex: number) => {
-                                if (!intent || typeof intent !== 'object') return null;
-                                return (
-                                  <Badge key={intentIndex} variant="outline" className="text-xs">
-                                    {intent.intent || '目的'}
-                                  </Badge>
-                                );
-                              })}
+                              <div className="flex flex-wrap gap-1">
+                                {user.tags && Array.isArray(user.tags) && user.tags.slice(0, 2).map((tag: Tag, tagIndex: number) => {
+                                  if (!tag || typeof tag !== 'object') return null;
+                                  return (
+                                    <Badge key={tagIndex} variant="secondary" className="text-xs">
+                                      #{tag.name || 'タグ'}
+                                    </Badge>
+                                  );
+                                })}
+                                {user.intents && Array.isArray(user.intents) && user.intents.slice(0, 1).map((intent: Intent, intentIndex: number) => {
+                                  if (!intent || typeof intent !== 'object') return null;
+                                  return (
+                                    <Badge key={intentIndex} variant="outline" className="text-xs">
+                                      {intent.intent || '目的'}
+                                    </Badge>
+                                  );
+                                })}
+                              </div>
                             </div>
                           </div>
+                          <div className="flex flex-col items-end space-y-1 ml-2">
+                            {user.is_followed_by && (
+                              <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                                フォローされています
+                              </span>
+                            )}
+                            <Button
+                              size="sm"
+                              variant={user.is_following ? "secondary" : "default"}
+                              className="text-xs h-7 px-3"
+                              onClick={(e) => handleFollowClick(user, e)}
+                            >
+                              {user.is_following ? 'フォロー中' : 'フォロー'}
+                            </Button>
+                          </div>
                         </div>
-                        <div className="flex flex-col items-end space-y-1 ml-2">
-                          {user.is_followed_by && (
-                            <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
-                              フォローされています
-                            </span>
-                          )}
-                          <Button
-                            size="sm"
-                            variant={user.is_following ? "secondary" : "default"}
-                            className="text-xs h-7 px-3"
-                            onClick={(e) => handleFollowClick(user, e)}
-                          >
-                            {user.is_following ? 'フォロー中' : 'フォロー'}
-                          </Button>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </a>
-              ))}
+                      </CardContent>
+                    </Card>
+                  </a>
+                );
+              })}
             </div>
           )}
         </TabsContent>
@@ -713,10 +721,10 @@ const Explore = () => {
                   body={post.body || ''}
                   mentions={post.mentions?.map(m => ({
                     target_user: {
-                      handle: m.user_pub_id || '',
-                      ...(m.display_name && { display_name: m.display_name })
+                      handle: m.target_user.handle,
+                      ...(m.target_user.display_name && { display_name: m.target_user.display_name })
                     },
-                    offset: 0 // exploreページのAPIレスポンスにはoffset情報がないため0を設定
+                    offset: m.offset
                   })) || []}
                   tags={Array.isArray(post.tags) ? post.tags.map(tag =>
                     typeof tag === 'string' ? tag : (tag?.name || 'タグ')

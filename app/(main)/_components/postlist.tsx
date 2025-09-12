@@ -99,7 +99,7 @@ const PostList = () => {
       const processedPosts = allPosts.map((p: ApiPost): ProcessedPost => ({
         post_id: p.pub_id,
         user_display_name: p.posted_user?.display_name ?? 'ユーザー',
-        user_handle: (p.posted_user?.handle ?? '').replace(/^@+/, ''),
+        user_handle: p.posted_user?.handle ?? '',
         user_icon: p.posted_user?.profile_icon_url ?? '/images/image.png',
         body: p.body ?? '',
         mentions: (p.mentions ?? []).map(m => ({

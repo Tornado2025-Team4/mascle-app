@@ -119,7 +119,7 @@ const FollowsPage: React.FC = () => {
               {filteredFollowers.length > 0 ? (
                 filteredFollowers.map((user) => (
                   <div key={user.pub_id} className="flex items-center justify-between py-3 border-b border-gray-100 last:border-b-0">
-                    <Link href={`/${(user.handle || user.pub_id).replace(/^@+/, '')}`} className="flex items-center gap-3 flex-1 min-w-0">
+                    <Link href={`/${user.handle || user.pub_id}`} className="flex items-center gap-3 flex-1 min-w-0">
                       <div className="w-12 h-12 bg-gray-300 rounded-full overflow-hidden flex-shrink-0">
                         <Image
                           src={user.icon_url || '/images/image.png'}
@@ -158,7 +158,7 @@ const FollowsPage: React.FC = () => {
               {filteredFollowings.length > 0 ? (
                 filteredFollowings.map((user) => (
                   <div key={user.pub_id} className="flex items-center justify-between py-3 border-b border-gray-100 last:border-b-0">
-                    <Link href={`/${(user.handle || user.pub_id).replace(/^@+/, '')}`} className="flex items-center gap-3 flex-1 min-w-0">
+                    <Link href={`/${user.handle || user.pub_id}`} className="flex items-center gap-3 flex-1 min-w-0">
                       <div className="w-12 h-12 bg-gray-300 rounded-full overflow-hidden flex-shrink-0">
                         <Image
                           src={user.icon_url || '/images/image.png'}

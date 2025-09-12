@@ -99,7 +99,7 @@ const TrainingUsersPopup: React.FC<TrainingUsersPopupProps> = ({
 
         const isAnonymous = user.anchor_type === 'anon_id';
         const linkHref = isAnonymous
-            ? `/anon/${user.anchor_value}`
+            ? `/~${user.anchor_value}`
             : `/${user.anchor_value}`;
 
         // 経過時間計算
