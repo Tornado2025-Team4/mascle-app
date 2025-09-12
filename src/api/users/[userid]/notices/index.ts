@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import get from './get';
 import count from './count';
+import patch from './patch';
 import { verifyJwtMW } from '@/src/api/_cmn/verify_jwt';
 import { createSupabaseSessMW } from '@/src/api/_cmn/create_supasess';
 import { rejectSpecByAnonMW } from '../_cmn/reject_spec_by_anon';
@@ -12,6 +13,7 @@ app_users_userid_notices.use(rejectSpecByAnonMW, verifyJwtMW, createSupabaseSess
 
 app_users_userid_notices.get('/', get);
 app_users_userid_notices.get('/count', count);
+app_users_userid_notices.patch('/', patch);
 
 app_users_userid_notices.route('/:noticeid', app_users_userid_notices_noticeid);
 

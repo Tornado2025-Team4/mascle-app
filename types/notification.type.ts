@@ -40,8 +40,27 @@ export type Notification = {
   pub_id: string
   notified_at: string
   kind: NotificationKind
-  is_oneshot: boolean
+  is_oneshot?: boolean
   is_read: boolean
-  icon_url: string
-  mentions: NotificationMention[]
+  icon_url?: string
+  mentions?: NotificationMention[]
+  add_info?: {
+    post_id?: string
+    [key: string]: unknown
+  }
+  igniter_user?: {
+    pub_id?: string
+    anon_pub_id?: string
+    handle?: string
+    display_name?: string
+    description?: string
+    tags?: Array<{
+      pub_id: string
+      name: string
+    }>
+    icon_url?: string
+    skill_level?: string
+    followings_count?: number
+    followers_count?: number
+  }
 }
