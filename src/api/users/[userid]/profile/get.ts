@@ -207,7 +207,7 @@ const getdata_anon = async (c: Context, userAnonPubId: string): Promise<respBody
     const { data: profile, error: profileErr } = await spClSA
         .from('views_user_profile_anon')
         .select('*')
-        .eq('pub_id', userAnonPubId)
+        .eq('anon_pub_id', userAnonPubId)
         .single();
 
     if (profileErr) {

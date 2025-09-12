@@ -73,11 +73,6 @@ const ProfileBasicInfo: React.FC<ProfileBasicInfoProps> = ({
     activeTraining,
     profile
 }) => {
-    // 匿名モードの場合は空要素を返す
-    if (isAnonymousMode) {
-        return <div className="bg-green-50 px-6 py-4 min-h-[200px]"></div>;
-    }
-
     // プロフィールデータがない場合
     if (!profile) {
         return (
@@ -94,7 +89,7 @@ const ProfileBasicInfo: React.FC<ProfileBasicInfoProps> = ({
     };
 
     return (
-        <div className="bg-green-50 px-6 py-4 relative">
+        <div className="bg-green-50 px-6 py-4">
             <div className="flex items-start gap-6">
                 {/* プロフィール画像（左上） */}
                 <div className="flex flex-col items-center gap-2 mt-4">
@@ -111,10 +106,27 @@ const ProfileBasicInfo: React.FC<ProfileBasicInfoProps> = ({
 
                 {/* メイン情報エリア（アイコンの右） */}
                 <div className="flex-1 flex flex-col">
+                    {/* フォローボタン（ディスプレイネームの上部） */}
+                    {userId !== 'me' && !isAnonymousMode && (
+                        <div className="mb-3 flex justify-end">
+                            <button
+                                onClick={onFollowToggle}
+                                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${profile.is_followed_by_current_user
+                                    ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                                    : 'bg-blue-500 text-white hover:bg-blue-600'
+                                    }`}
+                            >
+                                {profile.is_followed_by_current_user ? 'フォロー中' : 'フォロー'}
+                            </button>
+                        </div>
+                    )}
+
                     {/* ディスプレイネームとハンドルネーム */}
                     <div className="mb-3">
                         <h3 className="text-xl font-semibold">{profile.display_name || 'ユーザー'}</h3>
-                        <p className="text-sm text-gray-600">{profile.handle || ''}</p>
+                        {!isAnonymousMode && (
+                            <p className="text-sm text-gray-600">{profile.handle || ''}</p>
+                        )}
                     </div>
 
                     {/* 統計情報（投稿数、フォロワー数、フォロー数） */}
@@ -156,21 +168,6 @@ const ProfileBasicInfo: React.FC<ProfileBasicInfoProps> = ({
                         )}
                     </div>
                 </div>
-
-                {/* フォローボタン（右上） */}
-                {userId !== 'me' && (
-                    <div className="absolute top-4 right-6">
-                        <button
-                            onClick={onFollowToggle}
-                            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${profile.is_followed_by_current_user
-                                ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                                : 'bg-blue-500 text-white hover:bg-blue-600'
-                                }`}
-                        >
-                            {profile.is_followed_by_current_user ? 'フォロー中' : 'フォロー'}
-                        </button>
-                    </div>
-                )}
             </div>
 
             {/* 現在トレーニング中表示 */}

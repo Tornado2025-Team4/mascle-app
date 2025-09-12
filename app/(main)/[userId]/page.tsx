@@ -113,7 +113,8 @@ interface TrainingHistory {
 
 const Profile: React.FC = () => {
   const params = useParams();
-  const userId = (params.userId as string) ?? 'me';
+  const rawUserId = (params.userId as string) ?? 'me';
+  const userId = decodeURIComponent(rawUserId);
 
   const [profile, setProfile] = useState<Profile | null>(null);
   const [posts, setPosts] = useState<PostData[]>([]);
@@ -121,10 +122,19 @@ const Profile: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'posts' | 'records'>('posts');
 
+  // ユーザーIDが@か~で始まっているかチェック
+  const isValidUserId = userId === 'me' || userId.startsWith('@') || userId.startsWith('~');
+
   // 匿名モード判定（~で始まるユーザーIDの場合）
   const isAnonymousMode = userId.startsWith('~');
 
   useEffect(() => {
+    // 無効なユーザーIDの場合は何もしない
+    if (!isValidUserId) {
+      setLoading(false);
+      return;
+    }
+
     const fetchData = async () => {
       try {
         // プロフィール取得
@@ -134,7 +144,7 @@ const Profile: React.FC = () => {
 
           // フォロー状態をチェック（自分以外のプロフィールの場合）
           let isFollowed = false;
-          if (userId !== 'me') {
+          if (userId !== 'me' && !isAnonymousMode) {
             try {
               const followingsRes = await fetch(`/api/users/me/rel/followings`);
               if (followingsRes.ok) {
@@ -151,30 +161,37 @@ const Profile: React.FC = () => {
             is_followed_by_current_user: isFollowed
           });
 
-          // 投稿取得
-          const postsRes = await fetch(`/api/posts?posted_user_pub_id=${profileData.pub_id ?? userId}`);
-          if (postsRes.ok) {
-            const postsData = await postsRes.json();
-            setPosts(postsData);
+          // 匿名モードの場合は投稿とトレーニング記録を取得しない
+          if (!isAnonymousMode) {
+            // 投稿取得
+            const postsRes = await fetch(`/api/posts?posted_user_pub_id=${profileData.pub_id ?? userId}`);
+            if (postsRes.ok) {
+              const postsData = await postsRes.json();
+              setPosts(postsData);
+            }
+
+            // トレーニング記録取得（ステータスIDリストを取得）
+            const statusListRes = await fetch(`/api/users/${userId}/status?limit=20`);
+            if (statusListRes.ok) {
+              const statusList = await statusListRes.json();
+
+              // 各ステータスの詳細を取得
+              const trainingPromises = statusList.map(async (statusItem: { pub_id: string }) => {
+                const detailRes = await fetch(`/api/users/${userId}/status/${statusItem.pub_id}`);
+                if (detailRes.ok) {
+                  return await detailRes.json();
+                }
+                return null;
+              });
+
+              const trainingDetails = await Promise.all(trainingPromises);
+              const validTrainingData = trainingDetails.filter(Boolean) as TrainingHistory[];
+              setTrainingHistory(validTrainingData);
+            }
           }
-
-          // トレーニング記録取得（ステータスIDリストを取得）
-          const statusListRes = await fetch(`/api/users/${userId}/status?limit=20`);
-          if (statusListRes.ok) {
-            const statusList = await statusListRes.json();
-
-            // 各ステータスの詳細を取得
-            const trainingPromises = statusList.map(async (statusItem: { pub_id: string }) => {
-              const detailRes = await fetch(`/api/users/${userId}/status/${statusItem.pub_id}`);
-              if (detailRes.ok) {
-                return await detailRes.json();
-              }
-              return null;
-            });
-
-            const trainingDetails = await Promise.all(trainingPromises);
-            const validTrainingData = trainingDetails.filter(Boolean) as TrainingHistory[];
-            setTrainingHistory(validTrainingData);
+        } else {
+          if (profileRes.status === 404) {
+            console.log('ユーザーが見つかりません');
           }
         }
       } catch (error) {
@@ -185,7 +202,19 @@ const Profile: React.FC = () => {
     };
 
     fetchData();
-  }, [userId]);  // 最新の未完了トレーニングがあるかチェック
+  }, [userId, isValidUserId, isAnonymousMode]);
+
+  // 無効なユーザーIDの場合は404を表示
+  if (!isValidUserId) {
+    return (
+      <div className="min-h-screen px-[5vw] pb-[13vh] flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-800 mb-4">404 - ページが見つかりません</h1>
+          <p className="text-gray-600">指定されたユーザーは存在しません。</p>
+        </div>
+      </div>
+    );
+  }  // 最新の未完了トレーニングがあるかチェック
   const hasActiveTraining = () => {
     return trainingHistory &&
       trainingHistory.length > 0 &&
@@ -295,147 +324,158 @@ const Profile: React.FC = () => {
       />
 
       {/* タブコンテンツ */}
-      <div className="mt-6">
-        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'posts' | 'records')} className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="posts">投稿</TabsTrigger>
-            <TabsTrigger value="records">記録</TabsTrigger>
-          </TabsList>
+      {!isAnonymousMode && (
+        <div className="mt-6">
+          <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'posts' | 'records')} className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="posts">投稿</TabsTrigger>
+              <TabsTrigger value="records">記録</TabsTrigger>
+            </TabsList>
 
-          <TabsContent value="posts" className="mt-4">
-            <div className="flex flex-col gap-4">
-              {userPosts.length > 0 ? (
-                userPosts.map((post) => (
-                  <Post
-                    key={post.post_id}
-                    post_id={post.post_id}
-                    user_display_name={post.user_display_name}
-                    user_handle={profile?.handle || ''}
-                    user_icon={post.user_icon}
-                    body={post.body}
-                    mentions={post.mentions}
-                    tags={post.tags}
-                    photos={post.photos}
-                    posted_at={post.posted_at}
-                    like_count={post.like_count}
-                    comments_count={post.comments_count}
-                    is_liked_by_current_user={false}
-                    status={undefined}
-                  />
-                ))
-              ) : (
-                <div className="text-center py-8 text-gray-500">
-                  投稿がありません
-                </div>
-              )}
-            </div>
-          </TabsContent>
+            <TabsContent value="posts" className="mt-4">
+              <div className="flex flex-col gap-4">
+                {userPosts.length > 0 ? (
+                  userPosts.map((post) => (
+                    <Post
+                      key={post.post_id}
+                      post_id={post.post_id}
+                      user_display_name={post.user_display_name}
+                      user_handle={profile?.handle || ''}
+                      user_icon={post.user_icon}
+                      body={post.body}
+                      mentions={post.mentions}
+                      tags={post.tags}
+                      photos={post.photos}
+                      posted_at={post.posted_at}
+                      like_count={post.like_count}
+                      comments_count={post.comments_count}
+                      is_liked_by_current_user={false}
+                      status={undefined}
+                    />
+                  ))
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    投稿がありません
+                  </div>
+                )}
+              </div>
+            </TabsContent>
 
-          <TabsContent value="records" className="mt-4">
-            <div className="space-y-4">
-              {trainingHistory.length > 0 ? (
-                trainingHistory.map((history) => (
-                  <div
-                    key={history.pub_id}
-                    className="bg-white rounded-lg p-4 shadow-sm border"
-                  >
-                    <div className="space-y-3">
-                      {/* 基本情報 */}
-                      <div className="space-y-1 text-sm text-gray-600">
-                        <div className="flex items-center gap-2">
-                          <IoTimeOutline className="w-4 h-4" />
-                          <span>開始: {formatTime(history.started_at)}</span>
+            <TabsContent value="records" className="mt-4">
+              <div className="space-y-4">
+                {trainingHistory.length > 0 ? (
+                  trainingHistory.map((history) => (
+                    <div
+                      key={history.pub_id}
+                      className="bg-white rounded-lg p-4 shadow-sm border"
+                    >
+                      <div className="space-y-3">
+                        {/* 基本情報 */}
+                        <div className="space-y-1 text-sm text-gray-600">
+                          <div className="flex items-center gap-2">
+                            <IoTimeOutline className="w-4 h-4" />
+                            <span>開始: {formatTime(history.started_at)}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <IoTimeOutline className="w-4 h-4" />
+                            <span>終了: {history.finished_at ? formatTime(history.finished_at) : '未終了'}</span>
+                          </div>
+                          {history.finished_at && (
+                            <div className="text-sm text-blue-600 font-medium">
+                              トレーニング時間: {calculateTrainingDuration(history.started_at, history.finished_at)}
+                            </div>
+                          )}
                         </div>
-                        <div className="flex items-center gap-2">
-                          <IoTimeOutline className="w-4 h-4" />
-                          <span>終了: {history.finished_at ? formatTime(history.finished_at) : '未終了'}</span>
+
+                        {/* ジム情報 */}
+                        <div className="flex items-center gap-2 text-sm">
+                          <IoLocationOutline className="w-4 h-4 text-gray-500" />
+                          <span className="font-medium text-gray-900">
+                            {formatGymName(history.gym)}
+                          </span>
                         </div>
-                        {history.finished_at && (
-                          <div className="text-sm text-blue-600 font-medium">
-                            トレーニング時間: {calculateTrainingDuration(history.started_at, history.finished_at)}
+
+                        {/* パートナー */}
+                        {history.partners && history.partners.length > 0 && (
+                          <div className="text-sm text-gray-600">
+                            <span className="font-medium">一緒にトレーニング: </span>
+                            {history.partners.map((partner, index) => (
+                              <span key={`${history.pub_id}-partner-${index}`}>
+                                <a href={`/${partner.handle}`} className="text-blue-600 hover:underline">
+                                  {partner.handle}
+                                </a>
+                                {index < history.partners.length - 1 && ', '}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* メニュー */}
+                        {getMenuNames(history).length > 0 && (
+                          <div className="text-sm">
+                            <span className="font-medium text-gray-700">メニュー: </span>
+                            <span className="text-gray-600">{getMenuNames(history).join(', ')}</span>
+                          </div>
+                        )}
+
+                        {/* セット詳細 */}
+                        {history.menus && history.menus.length > 0 && (
+                          <div className="space-y-2">
+                            {history.menus.map((menuItem, index) => (
+                              <div key={`${history.pub_id}-menu-${index}`} className="text-sm">
+                                <div className="font-medium text-gray-700">{menuItem.menu.name}</div>
+                                {menuItem.sets && menuItem.sets.length > 0 && (
+                                  <div className="text-xs text-gray-500 ml-2">
+                                    {menuItem.sets.map((set, setIndex) => (
+                                      <span key={setIndex}>
+                                        {set.weight ? `${set.weight}kg` : ''}
+                                        {set.weight && set.reps ? ' × ' : ''}
+                                        {set.reps ? `${set.reps}回` : ''}
+                                        {setIndex < menuItem.sets!.length - 1 ? ', ' : ''}
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* 有酸素メニュー */}
+                        {history.menus_cardio && history.menus_cardio.length > 0 && (
+                          <div className="space-y-2">
+                            {history.menus_cardio.map((cardioItem, index) => (
+                              <div key={`${history.pub_id}-cardio-${index}`} className="text-sm">
+                                <div className="font-medium text-gray-700">{cardioItem.menu.name}</div>
+                                <div className="text-xs text-gray-500 ml-2">
+                                  {cardioItem.duration && `時間: ${cardioItem.duration}`}
+                                  {cardioItem.duration && cardioItem.distance && ', '}
+                                  {cardioItem.distance && `距離: ${cardioItem.distance}km`}
+                                </div>
+                              </div>
+                            ))}
                           </div>
                         )}
                       </div>
-
-                      {/* ジム情報 */}
-                      <div className="flex items-center gap-2 text-sm">
-                        <IoLocationOutline className="w-4 h-4 text-gray-500" />
-                        <span className="font-medium text-gray-900">
-                          {formatGymName(history.gym)}
-                        </span>
-                      </div>
-
-                      {/* パートナー */}
-                      {history.partners && history.partners.length > 0 && (
-                        <div className="text-sm text-gray-600">
-                          <span className="font-medium">一緒にトレーニング: </span>
-                          {history.partners.map((partner, index) => (
-                            <span key={`${history.pub_id}-partner-${index}`}>
-                              <span className="text-blue-600">{partner.handle}</span>
-                              {index < history.partners.length - 1 && ', '}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-
-                      {/* メニュー */}
-                      {getMenuNames(history).length > 0 && (
-                        <div className="text-sm">
-                          <span className="font-medium text-gray-700">メニュー: </span>
-                          <span className="text-gray-600">{getMenuNames(history).join(', ')}</span>
-                        </div>
-                      )}
-
-                      {/* セット詳細 */}
-                      {history.menus && history.menus.length > 0 && (
-                        <div className="space-y-2">
-                          {history.menus.map((menuItem, index) => (
-                            <div key={`${history.pub_id}-menu-${index}`} className="text-sm">
-                              <div className="font-medium text-gray-700">{menuItem.menu.name}</div>
-                              {menuItem.sets && menuItem.sets.length > 0 && (
-                                <div className="text-xs text-gray-500 ml-2">
-                                  {menuItem.sets.map((set, setIndex) => (
-                                    <span key={setIndex}>
-                                      {set.weight ? `${set.weight}kg` : ''}
-                                      {set.weight && set.reps ? ' × ' : ''}
-                                      {set.reps ? `${set.reps}回` : ''}
-                                      {setIndex < menuItem.sets!.length - 1 ? ', ' : ''}
-                                    </span>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-
-                      {/* 有酸素メニュー */}
-                      {history.menus_cardio && history.menus_cardio.length > 0 && (
-                        <div className="space-y-2">
-                          {history.menus_cardio.map((cardioItem, index) => (
-                            <div key={`${history.pub_id}-cardio-${index}`} className="text-sm">
-                              <div className="font-medium text-gray-700">{cardioItem.menu.name}</div>
-                              <div className="text-xs text-gray-500 ml-2">
-                                {cardioItem.duration && `時間: ${cardioItem.duration}`}
-                                {cardioItem.duration && cardioItem.distance && ', '}
-                                {cardioItem.distance && `距離: ${cardioItem.distance}km`}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
                     </div>
+                  ))
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    トレーニング記録がありません
                   </div>
-                ))
-              ) : (
-                <div className="text-center py-8 text-gray-500">
-                  トレーニング記録がありません
-                </div>
-              )}
-            </div>
-          </TabsContent>
-        </Tabs>
-      </div>
+                )}
+              </div>
+            </TabsContent>
+          </Tabs>
+        </div>
+      )}
+
+      {/* 匿名モードの場合のメッセージ */}
+      {isAnonymousMode && (
+        <div className="mt-6 text-center py-8 text-gray-500">
+          <p>匿名プロフィールでは、投稿やトレーニング記録は表示されません。</p>
+        </div>
+      )}
     </div>
   );
 };

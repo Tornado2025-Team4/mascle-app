@@ -98,9 +98,7 @@ const TrainingUsersPopup: React.FC<TrainingUsersPopupProps> = ({
             '名前未設定';
 
         const isAnonymous = user.anchor_type === 'anon_id';
-        const linkHref = isAnonymous
-            ? `/~${user.anchor_value}`
-            : `/${user.anchor_value}`;
+        const linkHref = user.anchor_value;//どちらも既に/~や@がついている
 
         // 経過時間計算
         const startTime = new Date(user.started_at);
