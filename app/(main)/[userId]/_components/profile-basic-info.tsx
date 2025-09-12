@@ -2,9 +2,24 @@
 
 import React from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 
 interface ProfileBasicInfoProps {
     isAnonymousMode: boolean;
+    userId: string;
+    onFollowToggle: () => void;
+    activeTraining?: {
+        pub_id: string;
+        started_at: string;
+        finished_at?: string | null;
+        gym?: {
+            pub_id: string;
+            name: string;
+            gymchain?: {
+                name: string;
+            };
+        } | null;
+    } | null;
     profile?: {
         pub_id?: string;
         anon_pub_id?: string;
@@ -47,11 +62,15 @@ interface ProfileBasicInfoProps {
         followings_count?: number;
         followers_count?: number;
         posts_count?: number;
-    };
+        is_followed_by_current_user?: boolean;
+    } | null;
 }
 
 const ProfileBasicInfo: React.FC<ProfileBasicInfoProps> = ({
     isAnonymousMode,
+    userId,
+    onFollowToggle,
+    activeTraining,
     profile
 }) => {
     // 匿名モードの場合は空要素を返す
@@ -68,10 +87,14 @@ const ProfileBasicInfo: React.FC<ProfileBasicInfoProps> = ({
         );
     }
 
-    // 基本情報の項目定義は削除し、直接表示する
+    // 誕生日表示用の関数（月日のみ）
+    const formatBirthday = (birthDate: string) => {
+        const date = new Date(birthDate);
+        return `${date.getMonth() + 1}月${date.getDate()}日`;
+    };
 
     return (
-        <div className="bg-green-50 px-6 py-4">
+        <div className="bg-green-50 px-6 py-4 relative">
             <div className="flex items-start gap-6">
                 {/* プロフィール画像（左上） */}
                 <div className="flex flex-col items-center gap-2 mt-4">
@@ -100,14 +123,14 @@ const ProfileBasicInfo: React.FC<ProfileBasicInfoProps> = ({
                             <div className="text-lg font-bold">{profile.posts_count || 0}</div>
                             <div className="text-xs text-gray-600">投稿</div>
                         </div>
-                        <div className="text-center">
+                        <Link href={`/${userId}/follows`} className="text-center hover:bg-gray-100 rounded px-2 py-1 transition-colors">
                             <div className="text-lg font-bold">{profile.followers_count || 0}</div>
                             <div className="text-xs text-gray-600">フォロワー</div>
-                        </div>
-                        <div className="text-center">
+                        </Link>
+                        <Link href={`/${userId}/follows`} className="text-center hover:bg-gray-100 rounded px-2 py-1 transition-colors">
                             <div className="text-lg font-bold">{profile.followings_count || 0}</div>
                             <div className="text-xs text-gray-600">フォロー</div>
-                        </div>
+                        </Link>
                     </div>
 
                     {/* 自己紹介 */}
@@ -133,23 +156,69 @@ const ProfileBasicInfo: React.FC<ProfileBasicInfoProps> = ({
                         )}
                     </div>
                 </div>
+
+                {/* フォローボタン（右上） */}
+                {userId !== 'me' && (
+                    <div className="absolute top-4 right-6">
+                        <button
+                            onClick={onFollowToggle}
+                            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${profile.is_followed_by_current_user
+                                ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                                : 'bg-blue-500 text-white hover:bg-blue-600'
+                                }`}
+                        >
+                            {profile.is_followed_by_current_user ? 'フォロー中' : 'フォロー'}
+                        </button>
+                    </div>
+                )}
             </div>
+
+            {/* 現在トレーニング中表示 */}
+            {activeTraining && (
+                <div className="mt-4 p-3 bg-orange-100 border border-orange-200 rounded-lg">
+                    <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 bg-orange-500 rounded-full animate-pulse"></div>
+                        <span className="text-sm font-medium text-orange-800">現在トレーニング中です</span>
+                    </div>
+                    {activeTraining.gym && (
+                        <div className="mt-1 text-xs text-orange-700">
+                            📍 {activeTraining.gym.gymchain ?
+                                `${activeTraining.gym.gymchain.name} - ${activeTraining.gym.name}` :
+                                activeTraining.gym.name}
+                        </div>
+                    )}
+                    <div className="mt-1 text-xs text-orange-600">
+                        開始時刻: {new Date(activeTraining.started_at).toLocaleTimeString('ja-JP', {
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        })}
+                    </div>
+                </div>
+            )}
 
             {/* 基本情報セクション */}
             <div className="mt-6 border-t border-green-200 pt-4">
                 <h4 className="text-lg font-semibold text-gray-700 mb-4">基本情報</h4>
                 <div className="grid grid-cols-1 gap-3">
 
-                    {/* 年代、年齢、誕生日 */}
+                    {/* 年代・年齢 */}
                     <div className="flex justify-between items-center py-2 px-3 bg-white rounded-lg">
-                        <span className="text-sm text-gray-600">年代・年齢・誕生日</span>
+                        <span className="text-sm text-gray-600">年代・年齢</span>
                         <span className="text-sm font-medium text-gray-800">
-                            {profile.generation ? `${profile.generation}代` : ''}
-                            {profile.age ? ` ${profile.age}歳` : ''}
-                            {profile.birth_date ? ` (${new Date(profile.birth_date).toLocaleDateString('ja-JP')})` : ''}
-                            {!profile.generation && !profile.age && !profile.birth_date ? '未設定' : ''}
+                            {profile.age ? `${profile.age}歳` :
+                                profile.generation ? `${profile.generation}代` : '未設定'}
                         </span>
                     </div>
+
+                    {/* 誕生日 */}
+                    {profile.birth_date && (
+                        <div className="flex justify-between items-center py-2 px-3 bg-white rounded-lg">
+                            <span className="text-sm text-gray-600">誕生日</span>
+                            <span className="text-sm font-medium text-gray-800">
+                                {formatBirthday(profile.birth_date)}
+                            </span>
+                        </div>
+                    )}
 
                     {/* 性別 */}
                     <div className="flex justify-between items-center py-2 px-3 bg-white rounded-lg">

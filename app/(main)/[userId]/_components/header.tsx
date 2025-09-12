@@ -1,11 +1,9 @@
 'use client'
 import React from 'react'
 import { IoChevronBack } from "react-icons/io5";
-import { FaRegAddressCard } from "react-icons/fa6";
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 
-const Header = ({ userId }: { userId: string }) => {
+const Header = () => {
   const router = useRouter();
 
   return (
@@ -14,12 +12,8 @@ const Header = ({ userId }: { userId: string }) => {
         <IoChevronBack className="text-3xl" />
       </button>
       <h1 className="absolute left-1/2 -translate-x-1/2 text-xl font-semibold">プロフィール</h1>
-      <div className="text-3xl">
-        <Link href={`/${userId}/card`} className="p-2 ">
-          <FaRegAddressCard />
-        </Link>
-      </div>
-    </header> 
+      <div className="w-12"></div> {/* スペーサー */}
+    </header>
   )
 }
 
