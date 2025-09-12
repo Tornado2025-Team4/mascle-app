@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
-import { Users, MapPin } from 'lucide-react';
+import { MapPin, Dumbbell } from 'lucide-react';
 import TrainingUsersPopup from '@/components/training-users-popup';
 
 interface TrainingUsersData {
@@ -122,7 +122,7 @@ const TrainingStatus: React.FC<TrainingStatusProps> = ({ currentUserId }) => {
         return (
             <Card className="p-4 mb-4">
                 <div className="flex items-center space-x-2">
-                    <Users className="h-4 w-4 text-gray-500" />
+                    <Dumbbell className="h-4 w-4 text-gray-500" />
                     <span className="text-sm text-gray-600">読み込み中...</span>
                 </div>
             </Card>
@@ -133,7 +133,7 @@ const TrainingStatus: React.FC<TrainingStatusProps> = ({ currentUserId }) => {
         return (
             <Card className="p-4 mb-4">
                 <div className="flex items-center space-x-2 text-red-600">
-                    <Users className="h-4 w-4" />
+                    <Dumbbell className="h-4 w-4" />
                     <span className="text-sm">エラー: {error}</span>
                 </div>
             </Card>
@@ -157,26 +157,26 @@ const TrainingStatus: React.FC<TrainingStatusProps> = ({ currentUserId }) => {
             onClose={() => setIsPopupOpen(false)}
             trigger={
                 <Card
-                    className="p-4 mb-4 cursor-pointer hover:shadow-lg transition-all duration-200 border-2 hover:border-blue-300 bg-gradient-to-r from-blue-50 to-indigo-50"
+                    className="p-4 mb-4 cursor-pointer hover:shadow-xl transition-all duration-200 border-2 border-orange-200 hover:border-orange-400 bg-gradient-to-r from-orange-50 to-red-50 hover:from-orange-100 hover:to-red-100"
                     onClick={() => setIsPopupOpen(true)}
                 >
                     <div className="flex items-center space-x-3">
-                        <div className="bg-blue-500 p-2 rounded-full">
-                            <Users className="h-5 w-5 text-white" />
+                        <div className="bg-gradient-to-br from-orange-500 to-red-500 p-2 rounded-full shadow-lg">
+                            <Dumbbell className="h-5 w-5 text-white" />
                         </div>
                         <div className="flex-1">
                             <div className="flex items-center space-x-2">
                                 <span className="text-sm font-semibold text-gray-900">
                                     {trainingData.total_count}人が{currentStatus.gym_name}でトレーニング中
                                 </span>
-                                <MapPin className="h-4 w-4 text-blue-600" />
+                                <MapPin className="h-4 w-4 text-orange-600" />
                             </div>
                             <p className="text-xs text-gray-600 mt-1">
                                 クリックして詳細を表示
                             </p>
                         </div>
                         {loading && (
-                            <div className="w-4 h-4 border-2 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
+                            <div className="w-4 h-4 border-2 border-orange-200 border-t-orange-600 rounded-full animate-spin"></div>
                         )}
                     </div>
                 </Card>

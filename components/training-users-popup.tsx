@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { Users, Clock } from 'lucide-react';
+import { Dumbbell } from 'lucide-react';
 
 type UserProfile = {
     pub_id?: string;
@@ -113,10 +113,10 @@ const TrainingUsersPopup: React.FC<TrainingUsersPopupProps> = ({
         return (
             <a href={linkHref} className="block">
                 <Card className="hover:shadow-lg transition-all duration-200 border-2 hover:border-blue-300 bg-gradient-to-r from-blue-50 to-indigo-50">
-                    <CardContent className="p-4">
+                    <CardContent className="p-2">
                         <div className="flex items-start space-x-3">
                             {/* アバター */}
-                            <Avatar className="w-12 h-12 ring-2 ring-blue-200">
+                            <Avatar className="w-12 h-12 ring-2 ring-blue-200 flex-shrink-0">
                                 <AvatarImage
                                     src={profile.icon_url ?? undefined}
                                     alt={displayName}
@@ -140,9 +140,11 @@ const TrainingUsersPopup: React.FC<TrainingUsersPopupProps> = ({
                                 </div>
 
                                 {/* ハンドル名/匿名ID */}
-                                <p className="text-sm text-gray-600 mb-2">
-                                    {isAnonymous ? profile.anon_pub_id : `@${profile.handle}`}
-                                </p>
+                                {!isAnonymous && profile.handle && (
+                                    <p className="text-sm text-gray-600 mb-2">
+                                        {profile.handle}
+                                    </p>
+                                )}
 
                                 {/* 自己紹介 */}
                                 {profile.description && (
@@ -167,10 +169,13 @@ const TrainingUsersPopup: React.FC<TrainingUsersPopupProps> = ({
                                     </div>
                                 )}
 
-                                {/* トレーニング時間 */}
-                                <div className="flex items-center space-x-1 text-sm text-gray-500">
-                                    <Clock className="w-4 h-4" />
-                                    <span>トレーニング開始から {timeDisplay}</span>
+                                {/* トレーニング時間と開始時期 */}
+                                <div className="flex flex-col space-y-1 text-xs text-gray-500">
+                                    {/* 今回のトレーニング時間 */}
+                                    <div className="flex items-center space-x-1">
+                                        <Dumbbell className="w-3 h-3" />
+                                        <span>開始から {timeDisplay}</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -192,21 +197,21 @@ const TrainingUsersPopup: React.FC<TrainingUsersPopupProps> = ({
                     onClick={(e) => e.stopPropagation()}
                 >
                     {/* ヘッダー */}
-                    <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-6">
+                    <div className="bg-white border-b border-gray-200 p-4">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center space-x-3">
-                                <Users className="w-6 h-6" />
-                                <h2 className="text-xl font-bold">トレーニング中のユーザー</h2>
+                                <Dumbbell className="w-5 h-5 text-gray-700" />
+                                <h2 className="text-lg font-bold text-gray-900">トレーニング中のユーザー</h2>
                             </div>
                             <button
                                 onClick={onClose}
-                                className="text-white/80 hover:text-white text-2xl font-bold w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors"
+                                className="text-gray-400 hover:text-gray-600 text-xl font-bold w-6 h-6 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
                             >
                                 ×
                             </button>
                         </div>
                         {data && (
-                            <p className="text-blue-100 mt-2">
+                            <p className="text-gray-600 text-sm mt-1">
                                 全 {data.total_count} 人がトレーニング中
                             </p>
                         )}
@@ -285,7 +290,7 @@ const TrainingUsersPopup: React.FC<TrainingUsersPopupProps> = ({
                                 {/* ユーザーがいない場合 */}
                                 {data.total_count === 0 && (
                                     <div className="text-center py-8">
-                                        <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                                        <Dumbbell className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                                         <p className="text-gray-600">現在トレーニング中のユーザーはいません</p>
                                     </div>
                                 )}
