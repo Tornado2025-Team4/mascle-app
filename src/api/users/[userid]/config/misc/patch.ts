@@ -8,7 +8,6 @@ import { z } from "zod";
 
 const noticeKindEnum = [
     'matching/offline/same-gym',
-    'matching/online/recommend',
     'social/follower-added',
     'social/following-posted',
     'social/following-started-training',
@@ -18,26 +17,18 @@ const noticeKindEnum = [
     'post/mentioned',
     'dm/pair/invite-received',
     'dm/pair/request-accepted',
-    'dm/pair/received',
-    'dm/group/invite-received',
-    'dm/group/request-accepted',
-    'dm/group/request-received',
-    'dm/group/member-added',
-    'dm/group/received',
-    'report/resolved',
-    'report/rejected',
-    'system/warning',
-    'system/announcement',
-    'other'
+    'dm/pair/received'
 ] as const;
+
+const relshipEnum = ['anyone', 'followers', 'following', 'follow-followers', 'no-one'] as const;
 
 const miscConfigSchema = z.object({
     frontend_ux: z.string().optional(),
     mute_notice_kinds: z.array(z.enum(noticeKindEnum)).optional(),
-    dm_pair_request_allow: z.boolean().optional(),
-    dm_pair_auto_allow: z.boolean().optional(),
-    dm_group_request_allow: z.boolean().optional(),
-    dm_group_auto_allow: z.boolean().optional(),
+    dm_pair_request_allow: z.enum(relshipEnum).optional(),
+    dm_pair_auto_allow: z.enum(relshipEnum).optional(),
+    dm_group_request_allow: z.enum(relshipEnum).optional(),
+    dm_group_auto_allow: z.enum(relshipEnum).optional(),
     enable_matching_offline: z.boolean().optional(),
 }).strict();
 
@@ -62,17 +53,26 @@ export default async function patch(c: Context) {
     const updateData = parseResult.data;
 
     if (Object.keys(updateData).length === 0) {
-        return c.json({ success: true });
+        // 何も更新せずに現在のデータを返す
+        const { data: currentData } = await supabase
+            .from('users_line_config')
+            .select('frontend_ux, mute_notice_kinds, dm_pair_request_allow, dm_pair_auto_allow, dm_group_request_allow, dm_group_auto_allow, enable_matching_offline')
+            .eq('user_rel_id', userRelId)
+            .single();
+
+        return c.json(currentData || {});
     }
 
-    const { error } = await supabase
+    const { data, error } = await supabase
         .from('users_line_config')
         .update(updateData)
-        .eq('user_rel_id', userRelId);
+        .eq('user_rel_id', userRelId)
+        .select('frontend_ux, mute_notice_kinds, dm_pair_request_allow, dm_pair_auto_allow, dm_group_request_allow, dm_group_auto_allow, enable_matching_offline')
+        .single();
 
     if (error) {
         throw new ApiErrorFatal(error.message);
     }
 
-    return c.json({ success: true });
+    return c.json(data);
 }

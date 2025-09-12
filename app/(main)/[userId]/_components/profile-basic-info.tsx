@@ -6,6 +6,7 @@ import Link from 'next/link';
 
 interface ProfileBasicInfoProps {
     isAnonymousMode: boolean;
+    isOwnProfile?: boolean;
     userId: string;
     onFollowToggle: () => void;
     activeTraining?: {
@@ -68,6 +69,7 @@ interface ProfileBasicInfoProps {
 
 const ProfileBasicInfo: React.FC<ProfileBasicInfoProps> = ({
     isAnonymousMode,
+    isOwnProfile = false,
     userId,
     onFollowToggle,
     activeTraining,
@@ -118,6 +120,18 @@ const ProfileBasicInfo: React.FC<ProfileBasicInfoProps> = ({
                             >
                                 {profile.is_followed_by_current_user ? 'フォロー中' : 'フォロー'}
                             </button>
+                        </div>
+                    )}
+
+                    {/* 名刺印刷ボタン（自分のプロフィールの場合） */}
+                    {isOwnProfile && (
+                        <div className="mb-3 flex justify-end">
+                            <Link
+                                href="/card"
+                                className="px-4 py-2 rounded-full text-sm font-medium bg-green-500 text-white hover:bg-green-600 transition-colors"
+                            >
+                                名刺印刷
+                            </Link>
                         </div>
                     )}
 

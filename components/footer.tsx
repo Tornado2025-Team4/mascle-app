@@ -38,15 +38,15 @@ const Footer = () => {
   };
 
   return (
-    <footer className="fixed bottom-0 left-0 w-full h-[8vh] bg-white border-t border-gray-200 flex items-center justify-center z-50 safe-area-inset-bottom">
+    <footer className="fixed bottom-0 left-0 w-full h-[8vh] min-h-[60px] bg-white border-t border-gray-200 flex items-center justify-center z-50 safe-area-inset-bottom">
       <nav role="navigation" aria-label="メインナビゲーション" className="w-full max-w-md">
-        <ul className="flex items-center justify-center gap-12 text-5xl">
+        <ul className="flex items-center justify-center gap-8 text-4xl h-full py-2">
           {/* Home */}
           <li>
             <Link
               href="/"
               aria-label="ホーム"
-              className={`p-3 rounded-lg transition-colors duration-200 focus:outline-none ${isActive('/') ? 'text-[#2C2C2C]' : 'text-gray-600 hover:text-gray-800'
+              className={`p-4 rounded-lg transition-colors duration-200 focus:outline-none touch-manipulation ${isActive('/') ? 'text-[#2C2C2C]' : 'text-gray-600 hover:text-gray-800'
                 }`}
             >
               {isActive('/') ? (
@@ -62,7 +62,7 @@ const Footer = () => {
             <Link
               href="/explore"
               aria-label="検索・探索"
-              className={`p-3 rounded-lg transition-colors duration-200 focus:outline-none ${isActive('/explore') ? 'text-[#2C2C2C]' : 'text-gray-600 hover:text-gray-800'
+              className={`p-4 rounded-lg transition-colors duration-200 focus:outline-none touch-manipulation ${isActive('/explore') ? 'text-[#2C2C2C]' : 'text-gray-600 hover:text-gray-800'
                 }`}
             >
               {isActive('/explore') ? (
@@ -78,7 +78,7 @@ const Footer = () => {
             <Link
               href="/state"
               aria-label="トレーニング履歴管理"
-              className={`p-3 rounded-lg transition-colors duration-200 focus:outline-none ${isActive('/state') ? 'text-[#2C2C2C]' : 'text-gray-600 hover:text-gray-800'
+              className={`p-4 rounded-lg transition-colors duration-200 focus:outline-none touch-manipulation ${isActive('/state') ? 'text-[#2C2C2C]' : 'text-gray-600 hover:text-gray-800'
                 }`}
             >
               <FaDumbbell aria-hidden="true" />
@@ -90,7 +90,7 @@ const Footer = () => {
             <Link
               href={profileHref}
               aria-label={`プロフィール${isLoading ? '（読み込み中）' : ''}`}
-              className={`p-3 rounded-lg transition-colors duration-200 focus:outline-none ${isActive(profileHref) ? 'text-[#2C2C2C]' : 'text-gray-600 hover:text-gray-800'
+              className={`p-4 rounded-lg transition-colors duration-200 focus:outline-none touch-manipulation ${isActive(profileHref) ? 'text-[#2C2C2C]' : 'text-gray-600 hover:text-gray-800'
                 } ${isLoading ? 'opacity-50' : ''}`}
             >
               {isActive(profileHref) ? (

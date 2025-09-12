@@ -1,9 +1,14 @@
 'use client'
 import React from 'react'
-import { IoChevronBack } from "react-icons/io5";
+import { IoChevronBack, IoSettingsOutline } from "react-icons/io5";
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
-const Header = () => {
+interface HeaderProps {
+  isOwnProfile?: boolean;
+}
+
+const Header: React.FC<HeaderProps> = ({ isOwnProfile = false }) => {
   const router = useRouter();
 
   return (
@@ -12,7 +17,13 @@ const Header = () => {
         <IoChevronBack className="text-3xl" />
       </button>
       <h1 className="absolute left-1/2 -translate-x-1/2 text-xl font-semibold">プロフィール</h1>
-      <div className="w-12"></div> {/* スペーサー */}
+      <div className="flex items-center">
+        {isOwnProfile && (
+          <Link href="/settings" className="p-2">
+            <IoSettingsOutline className="text-3xl text-gray-600 hover:text-gray-800" />
+          </Link>
+        )}
+      </div>
     </header>
   )
 }

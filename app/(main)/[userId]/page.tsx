@@ -121,12 +121,33 @@ const Profile: React.FC = () => {
   const [trainingHistory, setTrainingHistory] = useState<TrainingHistory[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'posts' | 'records'>('posts');
+  const [currentUserHandle, setCurrentUserHandle] = useState<string | null>(null);
 
   // ユーザーIDが@か~で始まっているかチェック
   const isValidUserId = userId === 'me' || userId.startsWith('@') || userId.startsWith('~');
 
   // 匿名モード判定（~で始まるユーザーIDの場合）
   const isAnonymousMode = userId.startsWith('~');
+
+  // 自分のプロフィールかどうかを判定
+  const isOwnProfile = userId === 'me' || (currentUserHandle && userId === currentUserHandle) || false;
+
+  useEffect(() => {
+    // 現在のユーザー情報を取得
+    const fetchCurrentUser = async () => {
+      try {
+        const currentUserRes = await fetch('/api/users/me/profile');
+        if (currentUserRes.ok) {
+          const currentUserData = await currentUserRes.json();
+          setCurrentUserHandle(currentUserData.handle);
+        }
+      } catch (error) {
+        console.error('現在のユーザー情報取得エラー:', error);
+      }
+    };
+
+    fetchCurrentUser();
+  }, []);
 
   useEffect(() => {
     // 無効なユーザーIDの場合は何もしない
@@ -312,11 +333,12 @@ const Profile: React.FC = () => {
   return (
     <div className="min-h-screen px-[5vw] pb-[13vh]">
       {/* ヘッダー */}
-      <Header />
+      <Header isOwnProfile={isOwnProfile} />
 
       {/* プロフィール情報セクション */}
       <ProfileBasicInfo
         isAnonymousMode={isAnonymousMode}
+        isOwnProfile={isOwnProfile}
         profile={profile}
         userId={userId}
         onFollowToggle={handleFollowToggle}
