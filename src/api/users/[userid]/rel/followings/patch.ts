@@ -4,6 +4,7 @@ import { ApiErrorFatal, ApiErrorBadRequest, ApiErrorForbidden, ApiErrorNotFound 
 import { mustGetCtx } from '@/src/api/_cmn/get_ctx';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { UserJwtInfo } from '@/src/api/_cmn/verify_jwt';
+import { sendMessage, noticeKinds, NotificationTarget } from '@/src/api/_cmn/send_message';
 
 interface reqBody {
     target_user_pub_id: string;
@@ -71,6 +72,24 @@ export default async function patch(c: Context) {
                 throw new ApiErrorBadRequest('Already following this user');
             }
             throw new ApiErrorFatal(`Failed to follow user: ${insertError.message}`);
+        }
+
+        // フォロー通知を送信
+        try {
+            const targets: NotificationTarget[] = [{
+                pub_id: body.target_user_pub_id,
+                should_be_anon: false
+            }];
+
+            await sendMessage(
+                spClSrv,
+                noticeKinds.SOCIAL_FOLLOWER_ADDED,
+                userIdInfo.pubId,
+                targets
+            );
+        } catch (error) {
+            console.error('Failed to send follow notification:', error);
+            // 通知送信失敗は致命的エラーとせず、ログのみ
         }
     } else {
         const { error: deleteError } = await spClSess

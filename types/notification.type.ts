@@ -46,6 +46,7 @@ export type Notification = {
   mentions?: NotificationMention[]
   add_info?: {
     post_id?: string
+    dm_pair_id?: string
     [key: string]: unknown
   }
   igniter_user?: {

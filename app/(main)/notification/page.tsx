@@ -9,7 +9,12 @@ import { useNotifications } from '@/contexts/notification-context'
 
 const NotificationPage = () => {
   const router = useRouter()
-  const { notifications, markAsRead } = useNotifications()
+  const { notifications, markAsRead, clearUnreadCount } = useNotifications()
+
+  // 通知ページを開いた時に未読通知数をクリア
+  useEffect(() => {
+    clearUnreadCount()
+  }, [clearUnreadCount])
 
   // 通知をページに表示した際に既読にマーク
   useEffect(() => {

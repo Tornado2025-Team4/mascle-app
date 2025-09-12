@@ -3,6 +3,7 @@ import { SupabaseClient } from '@supabase/supabase-js';
 import { ApiErrorFatal, ApiErrorNotFound, ApiErrorConflict } from '../../../_cmn/error';
 import { mustGetCtx } from '../../../_cmn/get_ctx';
 import { UserJwtInfo } from '../../../_cmn/verify_jwt';
+import { sendMessage, noticeKinds, NotificationTarget } from '../../../_cmn/send_message';
 
 export default async function post(c: Context) {
   const spClSess = mustGetCtx<SupabaseClient>(c, 'supabaseClientSess');
@@ -62,6 +63,42 @@ export default async function post(c: Context) {
 
   if (insertError) {
     throw new ApiErrorFatal(`Failed to create like: ${insertError.message}`);
+  }
+
+  // 投稿者への通知を送信（自分の投稿にいいねした場合は除く）
+  try {
+    const { data: postAuthor, error: authorError } = await spClSrv
+      .from('posts_master')
+      .select('posted_user_rel_id')
+      .eq('rel_id', postData.rel_id)
+      .single();
+
+    if (!authorError && postAuthor && postAuthor.posted_user_rel_id !== userData.rel_id) {
+      // 投稿者のpub_idを取得
+      const { data: authorUser, error: authorUserError } = await spClSrv
+        .from('users_master')
+        .select('pub_id')
+        .eq('rel_id', postAuthor.posted_user_rel_id)
+        .single();
+
+      if (!authorUserError && authorUser) {
+        const targets: NotificationTarget[] = [{
+          pub_id: authorUser.pub_id,
+          should_be_anon: false
+        }];
+
+        await sendMessage(
+          spClSrv,
+          noticeKinds.POST_LIKED,
+          currentUserId,
+          targets,
+          { post_id: postid }
+        );
+      }
+    }
+  } catch (error) {
+    console.error('Failed to send like notification:', error);
+    // 通知送信失敗は致命的エラーとせず、ログのみ
   }
 
   return c.json({ success: true });

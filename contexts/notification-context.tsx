@@ -8,6 +8,7 @@ interface NotificationContextType {
     unreadCount: number
     markAsRead: (notificationIds: string[]) => Promise<void>
     refreshNotifications: () => Promise<void>
+    clearUnreadCount: () => void
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined)
@@ -33,9 +34,10 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     const fetchNotifications = useCallback(async () => {
         try {
             const res = await fetch('/api/users/me/notices')
-            if (!res.ok) return
+            if (!res.ok) throw new Error('通知の取得に失敗しました')
 
             const newNotifications: Notification[] = await res.json()
+            console.log('取得した通知データ:', newNotifications)
 
             setNotifications(prevNotifications => {
                 // 初回読み込み以外で新しい通知があった場合、トーストに表示
@@ -110,6 +112,15 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
 
     const unreadCount = notifications.filter(n => !n.is_read).length
 
+    const clearUnreadCount = useCallback(() => {
+        // すべての未読通知を既読にマーク
+        const unreadNotifications = notifications.filter(n => !n.is_read)
+        if (unreadNotifications.length > 0) {
+            const unreadIds = unreadNotifications.map(n => n.pub_id)
+            markAsRead(unreadIds)
+        }
+    }, [notifications, markAsRead])
+
     const removeToastNotification = useCallback((notificationId: string) => {
         setToastNotifications(prev => prev.filter(n => n.pub_id !== notificationId))
     }, [])
@@ -151,6 +162,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
         unreadCount,
         markAsRead,
         refreshNotifications,
+        clearUnreadCount,
     }
 
     return (

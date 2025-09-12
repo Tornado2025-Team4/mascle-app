@@ -97,7 +97,10 @@ export const getNotificationLink = (notification: Notification): string => {
     case "dm/pair/received":
     case "dm/pair/invite-received":
     case "dm/pair/request-accepted":
-      // DMページ
+      // DMページ - DM pair IDがあれば該当のDMページ、なければDM一覧
+      if (addInfo?.dm_pair_id) {
+        return `/dm/${addInfo.dm_pair_id}`;
+      }
       return "/dm";
 
     default:
@@ -112,5 +115,10 @@ export const handleNotificationClick = (
   router: ReturnType<typeof useRouter>
 ) => {
   const link = getNotificationLink(notification);
+  console.log('通知クリック:', {
+    kind: notification.kind,
+    add_info: notification.add_info,
+    link: link
+  });
   router.push(link);
 };
