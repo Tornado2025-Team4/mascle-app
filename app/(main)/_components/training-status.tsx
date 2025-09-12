@@ -167,7 +167,7 @@ const TrainingStatus: React.FC<TrainingStatusProps> = ({ currentUserId }) => {
                         <div className="flex-1">
                             <div className="flex items-center space-x-2">
                                 <span className="text-sm font-semibold text-gray-900">
-                                    {trainingData.total_count}人が{currentStatus.gym_name}でトレーニング中
+                                    {trainingData.total_count}人が同じジムでトレーニング中
                                 </span>
                                 <MapPin className="h-4 w-4 text-orange-600" />
                             </div>
