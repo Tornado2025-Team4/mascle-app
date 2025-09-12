@@ -40,6 +40,7 @@ interface NoticeItem {
     is_read: boolean;
     notified_at: string;
     kind: string;
+    add_info?: unknown;
     igniter_user?: {
         pub_id?: string;
         anon_pub_id?: string;
@@ -62,6 +63,7 @@ interface NoticeViewItem {
     is_read: boolean;
     notified_at: string;
     kind: string;
+    add_info?: unknown;
     igniter_user?: {
         pub_id?: string;
         anon_pub_id?: string;
@@ -168,6 +170,10 @@ export default async function get(c: Context) {
                 notified_at: new Date(notice.notified_at).toISOString(),
                 kind: notice.kind
             };
+
+            if (notice.add_info) {
+                result.add_info = notice.add_info;
+            }
 
             if (igniter_user) {
                 result.igniter_user = igniter_user;

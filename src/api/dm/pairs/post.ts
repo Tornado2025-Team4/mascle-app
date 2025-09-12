@@ -4,6 +4,7 @@ import { ApiErrorFatal, ApiErrorBadRequest } from '@/src/api/_cmn/error';
 import { mustGetCtx } from '@/src/api/_cmn/get_ctx';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { nanoid } from 'nanoid';
+import { sendMessage, noticeKinds, NotificationTarget } from '@/src/api/_cmn/send_message';
 
 interface reqBody {
   partner_pub_id: string;
@@ -129,6 +130,28 @@ export default async function post(c: Context) {
 
   if (insertError || !newPair) {
     throw new ApiErrorFatal('Failed to create DM pair');
+  }
+
+  // DM招待通知を送信（相手がDMを許可していない場合）
+  try {
+    if (!partnerAllowed) {
+      const spClSrv = mustGetCtx<SupabaseClient>(c, 'supabaseClientService');
+      const targets: NotificationTarget[] = [{
+        pub_id: reqBody.partner_pub_id,
+        should_be_anon: false
+      }];
+
+      await sendMessage(
+        spClSrv,
+        noticeKinds.DM_PAIR_INVITE_RECEIVED,
+        userJwtInfo.obj.id,
+        targets,
+        { dm_pair_id: pairPubId }
+      );
+    }
+  } catch (error) {
+    console.error('Failed to send DM invite notification:', error);
+    // 通知送信失敗は致命的エラーとせず、ログのみ
   }
 
   return c.json({ pub_id: newPair.pub_id } as respBody);

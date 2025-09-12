@@ -1,9 +1,10 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { FiBell, FiMail } from "react-icons/fi"
+import { useNotifications } from '@/contexts/notification-context'
 
 interface CommonHeaderProps {
     showBackButton?: boolean
@@ -16,28 +17,7 @@ const CommonHeader: React.FC<CommonHeaderProps> = ({
     title,
     onBackClick
 }) => {
-    const [notificationCount, setNotificationCount] = useState(0)
-
-    useEffect(() => {
-        const fetchNotificationCount = async () => {
-            try {
-                const response = await fetch('/api/users/me/notices/count')
-                if (response.ok) {
-                    const data = await response.json()
-                    setNotificationCount(data.unread_count)
-                }
-            } catch (error) {
-                console.error('通知数の取得に失敗しました:', error)
-            }
-        }
-
-        fetchNotificationCount()
-
-        // 30秒ごとに通知数を更新
-        const interval = setInterval(fetchNotificationCount, 30000)
-
-        return () => clearInterval(interval)
-    }, [])
+    const { unreadCount } = useNotifications()
 
     if (showBackButton && title) {
         // バックボタン付きヘッダー（通知ページ、DMページなど用）
@@ -78,9 +58,9 @@ const CommonHeader: React.FC<CommonHeaderProps> = ({
                         className="p-2 rounded-lg hover:bg-gray-100 transition-colors duration-200 text-gray-600 hover:text-gray-800 relative"
                     >
                         <FiBell aria-hidden="true" />
-                        {notificationCount > 0 && (
+                        {unreadCount > 0 && (
                             <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
-                                {notificationCount > 99 ? '99+' : notificationCount}
+                                {unreadCount > 99 ? '99+' : unreadCount}
                             </span>
                         )}
                     </Link>

@@ -4,6 +4,7 @@ import { SupabaseClient } from '@supabase/supabase-js';
 import { ApiErrorFatal, ApiErrorUnprocessable, ApiErrorNotFound } from '../../../_cmn/error';
 import { mustGetCtx } from '../../../_cmn/get_ctx';
 import { UserJwtInfo } from '../../../_cmn/verify_jwt';
+import { sendMessage, noticeKinds, NotificationTarget } from '../../../_cmn/send_message';
 
 interface ReqBodyMention {
   offset: number;
@@ -113,6 +114,62 @@ export default async function post(c: Context) {
         throw new ApiErrorFatal(`Failed to create mentions: ${mentionInsertError.message}`);
       }
     }
+  }
+
+  // 通知送信
+  try {
+    // 投稿者への通知（自分のコメントの場合は除く）
+    const { data: postAuthor, error: authorError } = await spClSrv
+      .from('posts_master')
+      .select('posted_user_rel_id')
+      .eq('rel_id', postData.rel_id)
+      .single();
+
+    if (!authorError && postAuthor && postAuthor.posted_user_rel_id !== userData.rel_id) {
+      const { data: authorUser, error: authorUserError } = await spClSrv
+        .from('users_master')
+        .select('pub_id')
+        .eq('rel_id', postAuthor.posted_user_rel_id)
+        .single();
+
+      if (!authorUserError && authorUser) {
+        const targets: NotificationTarget[] = [{
+          pub_id: authorUser.pub_id,
+          should_be_anon: false
+        }];
+
+        await sendMessage(
+          spClSrv,
+          noticeKinds.POST_COMMENTED,
+          currentUserId,
+          targets,
+          { post_id: postid }
+        );
+      }
+    }
+
+    // メンションされたユーザーへの通知
+    if (reqBody.mentions && reqBody.mentions.length > 0) {
+      const mentionTargets: NotificationTarget[] = reqBody.mentions
+        .filter(mention => mention.pub_id !== currentUserId) // 自分をメンションした場合は除く
+        .map(mention => ({
+          pub_id: mention.pub_id,
+          should_be_anon: false
+        }));
+
+      if (mentionTargets.length > 0) {
+        await sendMessage(
+          spClSrv,
+          noticeKinds.POST_MENTIONED,
+          currentUserId,
+          mentionTargets,
+          { post_id: postid }
+        );
+      }
+    }
+  } catch (error) {
+    console.error('Failed to send comment notification:', error);
+    // 通知送信失敗は致命的エラーとせず、ログのみ
   }
 
   return c.json({ pub_id: pubId });

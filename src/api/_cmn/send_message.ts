@@ -39,6 +39,7 @@ export const sendMessage = async (
     kind: noticeKinds,
     igniterPubId: string | null,
     targets: NotificationTarget[],
+    addInfo?: { [key: string]: unknown }
 ) => {
     if (targets.length === 0) {
         return;
@@ -83,6 +84,7 @@ export const sendMessage = async (
             pub_id: noticePubId,
             kind: kind,
             igniter_user_rel_id: igniterUserRelId,
+            add_info: addInfo ? JSON.stringify(addInfo) : null,
         })
         .select('rel_id')
         .single();

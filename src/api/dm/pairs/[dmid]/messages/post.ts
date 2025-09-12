@@ -4,6 +4,7 @@ import { ApiErrorFatal, ApiErrorNotFound, ApiErrorBadRequest, ApiErrorForbidden 
 import { mustGetCtx } from '@/src/api/_cmn/get_ctx';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { nanoid } from 'nanoid';
+import { sendMessage, noticeKinds, NotificationTarget } from '@/src/api/_cmn/send_message';
 
 interface reqBody {
   body: string;
@@ -137,6 +138,41 @@ export default async function post(c: Context) {
           target_message_rel_id: replyToMessage.rel_id
         });
     }
+  }
+
+  // 受信者への通知を送信
+  try {
+    const { data: spClSrv } = await spClSess.auth.getSession();
+    if (spClSrv) {
+      // メッセージ受信者のpub_idを取得
+      const receiverRelId = isUserA ? pairData.user_b_rel_id : pairData.user_a_rel_id;
+
+      const { data: receiverUser, error: receiverError } = await spClSess
+        .from('users_master')
+        .select('pub_id')
+        .eq('rel_id', receiverRelId)
+        .single();
+
+      if (!receiverError && receiverUser) {
+        const targets: NotificationTarget[] = [{
+          pub_id: receiverUser.pub_id,
+          should_be_anon: false
+        }];
+
+        // サービスロールクライアントが必要
+        const spClSrvClient = mustGetCtx<SupabaseClient>(c, 'supabaseClientService');
+        await sendMessage(
+          spClSrvClient,
+          noticeKinds.DM_PAIR_RECEIVED,
+          userJwtInfo.obj.id,
+          targets,
+          { dm_pair_id: dmid }
+        );
+      }
+    }
+  } catch (error) {
+    console.error('Failed to send DM notification:', error);
+    // 通知送信失敗は致命的エラーとせず、ログのみ
   }
 
   return c.json({ pub_id: messagePubId } as respBody);

@@ -5,6 +5,7 @@ import { ApiErrorFatal, ApiErrorUnprocessable } from '../_cmn/error';
 import { mustGetCtx } from '../_cmn/get_ctx';
 import { UserJwtInfo } from '../_cmn/verify_jwt';
 import { processBase64Image, uploadImageToStorage } from '../_cmn/image_utils';
+import { sendMessage, noticeKinds, NotificationTarget } from '../_cmn/send_message';
 
 interface ReqBodyMention {
   offset: number;
@@ -209,6 +210,62 @@ export default async function post(c: Context) {
   if (reqBody.exercises && reqBody.exercises.length > 0) {
     // exercisesフィールドが送信された場合は警告ログを出力
     console.warn('Exercises field is provided but not processed. Use existing status with menus instead.');
+  }
+
+  // フォロワーへの通知送信
+  try {
+    // フォロワーリストを取得
+    const { data: followersData, error: followersError } = await spClSrv
+      .from('users_lines_followings')
+      .select('user_rel_id')
+      .eq('target_user_rel_id', userData.rel_id);
+
+    if (!followersError && followersData && followersData.length > 0) {
+      // フォロワーのpub_idを取得
+      const followerRelIds = followersData.map(f => f.user_rel_id);
+      const { data: followerUsers, error: followerUsersError } = await spClSrv
+        .from('users_master')
+        .select('pub_id')
+        .in('rel_id', followerRelIds);
+
+      if (!followerUsersError && followerUsers && followerUsers.length > 0) {
+        const targets: NotificationTarget[] = followerUsers.map(user => ({
+          pub_id: user.pub_id,
+          should_be_anon: false
+        }));
+
+        await sendMessage(
+          spClSrv,
+          noticeKinds.SOCIAL_FOLLOWING_POSTED,
+          currentUserId,
+          targets,
+          { post_id: pubId }
+        );
+      }
+    }
+
+    // メンションされたユーザーへの通知
+    if (reqBody.mentions && reqBody.mentions.length > 0) {
+      const mentionTargets: NotificationTarget[] = reqBody.mentions
+        .filter(mention => mention.pub_id !== currentUserId) // 自分をメンションした場合は除く
+        .map(mention => ({
+          pub_id: mention.pub_id,
+          should_be_anon: false
+        }));
+
+      if (mentionTargets.length > 0) {
+        await sendMessage(
+          spClSrv,
+          noticeKinds.POST_MENTIONED,
+          currentUserId,
+          mentionTargets,
+          { post_id: pubId }
+        );
+      }
+    }
+  } catch (error) {
+    console.error('Failed to send post notification:', error);
+    // 通知送信失敗は致命的エラーとせず、ログのみ
   }
 
   const response: ResBody = {

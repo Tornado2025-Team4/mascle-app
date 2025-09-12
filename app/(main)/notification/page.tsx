@@ -1,45 +1,34 @@
 'use client'
-import React, { useEffect, useMemo, useState } from 'react'
-import { IoEllipse } from 'react-icons/io5'
+import React, { useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import RecommendFollow from './_components/recommend-follow'
 import SubHeader from '@/components/sub-header'
-import type { Notification } from '@/types/notification.type'
-import { getNotificationDisplayText, handleNotificationClick } from '@/lib/notification'
+import { getNotificationDisplayText, handleNotificationClick, getNotificationIconText } from '@/lib/notification'
 import { formatRelativeTime } from '@/lib/date'
 import Image from 'next/image'
+import { useNotifications } from '@/contexts/notification-context'
 
-const Notification = () => {
+const NotificationPage = () => {
   const router = useRouter()
-  const [notifications, setNotifications] = useState<Notification[] | null>(
-    null,
-  )
-  const [isLoading, setIsLoading] = useState<boolean>(true)
-  const [error, setError] = useState<string | null>(null)
+  const { notifications, markAsRead, clearUnreadCount } = useNotifications()
 
+  // 通知ページを開いた時に未読通知数をクリア
   useEffect(() => {
-    const fetchNotification = async () => {
-      try {
-        setIsLoading(true)
-        setError(null)
-        const res = await fetch('/api/users/me/notices')
-        if (!res.ok) throw new Error('通知の取得に失敗しました')
-        const body: { notices: Array<Notification> } = await res.json()
-        setNotifications(body.notices ?? [])
-      } catch (err) {
-        console.error(err)
-        setError('通知の取得に失敗しました')
-        setNotifications([])
-      } finally {
-        setIsLoading(false)
+    clearUnreadCount()
+  }, [clearUnreadCount])
+
+  // 通知をページに表示した際に既読にマーク
+  useEffect(() => {
+    if (notifications && notifications.length > 0) {
+      const unreadNotifications = notifications.filter(n => !n.is_read)
+      if (unreadNotifications.length > 0) {
+        const unreadIds = unreadNotifications.map(n => n.pub_id)
+        markAsRead(unreadIds)
       }
     }
-    fetchNotification()
-  }, [])
+  }, [notifications, markAsRead])
 
   const sortedNotifications = useMemo(() => {
-    const src = notifications ?? []
-    return src
+    return notifications.sort((a, b) => new Date(b.notified_at).getTime() - new Date(a.notified_at).getTime())
   }, [notifications])
 
   return (
@@ -47,62 +36,57 @@ const Notification = () => {
       <SubHeader title="通知" />
       {/* 通知一覧 */}
       <main className="flex-1 overflow-y-auto px-4 pt-4 pb-24" style={{ maxHeight: 'calc(100vh - 8vh - 6vh - 10vh)' }}>
-        {isLoading && (
-          <p className="py-6 text-sm text-gray-500">読み込み中...</p>
-        )}
-        {!isLoading && error && (
-          <p className="py-6 text-sm text-red-600">エラーが発生しました</p>
-        )}
-
-        {!isLoading && (
-          <section className="mt-2">
-            <ul className="space-y-3">
-              {sortedNotifications.map((notification) => (
-                <li
-                  key={notification.pub_id}
-                  className={`rounded-lg p-4 text-sm border-l-4 cursor-pointer transition-colors ${notification.is_read
-                      ? 'bg-gray-50 border-gray-300 hover:bg-gray-100'
-                      : 'bg-rose-50 border-rose-300 shadow-sm hover:bg-rose-100'
-                    }`}
-                  onClick={() => handleNotificationClick(notification, router)}
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-start gap-3 flex-1 min-w-0">
-                      <span className="flex items-center justify-center h-full mt-1.5 w-4">
-                        {!notification.is_read && (
-                          <IoEllipse className="text-rose-500 mx-auto w-2 h-2" />
-                        )}
-                      </span>
-                      <div className="flex-1 min-w-0">
-                        <div className={`flex items-center gap-1 ${notification.is_read ? 'text-gray-600' : 'text-gray-900'}`}>
-                          {notification.mentions[0]?.profile.icon_url && (
-                            <Image src={notification.mentions[0].profile.icon_url} alt="通知アイコン" className="w-4 h-4" width={16} height={16} />
-                          )}
-                          <p className="truncate max-w-full">{getNotificationDisplayText(notification).length > 40 ? getNotificationDisplayText(notification).slice(0, 40) + '...' : getNotificationDisplayText(notification)}</p>
-                        </div>
-                      </div>
+        <section className="mt-2">
+          <ul className="space-y-3">
+            {sortedNotifications.map((notification) => (
+              <li
+                key={notification.pub_id}
+                className={`rounded-lg p-4 text-sm border-l-4 cursor-pointer transition-colors ${notification.is_read
+                  ? 'bg-gray-50 border-gray-300 hover:bg-gray-100'
+                  : 'bg-rose-50 border-rose-300 shadow-sm hover:bg-rose-100'
+                  }`}
+                onClick={() => handleNotificationClick(notification, router)}
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex items-start gap-3 flex-1 min-w-0">
+                    <div className="flex items-center justify-center w-8 h-8 flex-shrink-0">
+                      {notification.igniter_user?.icon_url ? (
+                        <Image
+                          src={notification.igniter_user.icon_url}
+                          alt="通知アイコン"
+                          className="w-8 h-8 rounded-full object-cover"
+                          width={32}
+                          height={32}
+                        />
+                      ) : (
+                        <span className="text-lg">
+                          {getNotificationIconText(notification)}
+                        </span>
+                      )}
                     </div>
-                    <span className={`tabular-nums text-xs ml-3 flex-shrink-0 ${notification.is_read ? 'text-gray-400' : 'text-gray-500'
-                      }`}>
-                      {formatRelativeTime(notification.notified_at)}
-                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p className={`${notification.is_read ? 'text-gray-600' : 'text-gray-900'} whitespace-pre-wrap break-words`}>
+                        {getNotificationDisplayText(notification)}
+                      </p>
+                    </div>
                   </div>
-                </li>
-              ))}
-              {sortedNotifications.length === 0 && (
-                <li className="text-center py-8 text-sm text-gray-500">
-                  通知はありません
-                </li>
-              )}
-            </ul>
-          </section>
-        )}
-
-        {/* フォローのおすすめ */}
-        <RecommendFollow />
+                  <span className={`tabular-nums text-xs ml-3 flex-shrink-0 ${notification.is_read ? 'text-gray-400' : 'text-gray-500'
+                    }`}>
+                    {formatRelativeTime(notification.notified_at)}
+                  </span>
+                </div>
+              </li>
+            ))}
+            {sortedNotifications.length === 0 && (
+              <li className="text-center py-8 text-sm text-gray-500">
+                通知はありません
+              </li>
+            )}
+          </ul>
+        </section>
       </main>
     </div>
   )
 }
 
-export default Notification
+export default NotificationPage
