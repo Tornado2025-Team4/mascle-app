@@ -216,7 +216,10 @@ const SetupPage = () => {
       }
 
       console.log('Profile updated successfully');
-      router.push('/');
+      // プロフィール更新後、少し待ってからリダイレクト（middlewareキャッシュ更新のため）
+      setTimeout(() => {
+        router.replace('/'); // pushではなくreplaceを使用してback履歴をクリア
+      }, 500);
     } catch (error) {
       console.error('Error updating profile:', error);
       alert('プロフィール更新中にエラーが発生しました');
@@ -234,16 +237,23 @@ const SetupPage = () => {
   )
 
   return (
-    <main className="max-w-md mx-auto p-6 space-y-6">
-      <h1 className="text-xl font-bold">セットアップ</h1>
-      <SetProfile
-        userId="me"
-        onSubmit={handleProfileSubmit}
-        onAfterSubmit={() => {
-          console.log('Setup completed successfully');
-        }}
-      />
-    </main>
+    <>
+      <style jsx global>{`
+        footer {
+          display: none !important;
+        }
+      `}</style>
+      <main className="max-w-md mx-auto p-6 space-y-6">
+        <h1 className="text-xl font-bold">セットアップ</h1>
+        <SetProfile
+          userId="me"
+          onSubmit={handleProfileSubmit}
+          onAfterSubmit={() => {
+            console.log('Setup completed successfully');
+          }}
+        />
+      </main>
+    </>
   )
 }
 

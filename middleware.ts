@@ -63,7 +63,9 @@ export async function middleware(request: NextRequest) {
       const profileRes = await fetch(`${request.nextUrl.origin}/api/users/me/profile`, {
         headers: {
           cookie: request.headers.get("cookie") ?? "",
-          'Cache-Control': 'no-cache',
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
         },
       });
 
