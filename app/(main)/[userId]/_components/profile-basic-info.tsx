@@ -127,7 +127,7 @@ const ProfileBasicInfo: React.FC<ProfileBasicInfoProps> = ({
                     {isOwnProfile && (
                         <div className="mb-3 flex justify-end">
                             <Link
-                                href="/card"
+                                href={`/${userId}/card`}
                                 className="px-4 py-2 rounded-full text-sm font-medium bg-green-500 text-white hover:bg-green-600 transition-colors"
                             >
                                 名刺印刷
