@@ -58,39 +58,7 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(url);
     }
 
-    // プロフィール設定チェック
-    try {
-      const profileRes = await fetch(`${request.nextUrl.origin}/api/users/me/profile`, {
-        headers: {
-          cookie: request.headers.get("cookie") ?? "",
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0',
-        },
-      });
-
-      if (profileRes.status === 401 || profileRes.status === 403) {
-        console.log(`Profile access forbidden for ${pathname}, redirecting to signin`);
-        const url = request.nextUrl.clone();
-        url.pathname = "/signin";
-        return NextResponse.redirect(url);
-      }
-
-      if (profileRes.ok) {
-        const profile = await profileRes.json();
-        const inited: boolean | undefined = profile?.inited;
-
-        if (!inited) {
-          console.log(`Profile not initialized for ${pathname}, redirecting to setup`);
-          const url = request.nextUrl.clone();
-          url.pathname = "/setup";
-          return NextResponse.redirect(url);
-        }
-      }
-    } catch (profileError) {
-      console.error('Profile check error:', profileError);
-      // プロフィールチェックの失敗は続行を許可
-    }
+    // プロフィールチェックを削除 - setup画面での無限ループを防ぐため
 
     return response;
   } catch (error) {

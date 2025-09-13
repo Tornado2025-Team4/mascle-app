@@ -216,10 +216,8 @@ const SetupPage = () => {
       }
 
       console.log('Profile updated successfully');
-      // プロフィール更新後、少し待ってからリダイレクト（middlewareキャッシュ更新のため）
-      setTimeout(() => {
-        router.replace('/'); // pushではなくreplaceを使用してback履歴をクリア
-      }, 500);
+      // 強制的にページを遷移（middlewareを完全にバイパス）
+      window.location.href = '/';
     } catch (error) {
       console.error('Error updating profile:', error);
       alert('プロフィール更新中にエラーが発生しました');
